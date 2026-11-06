@@ -49,6 +49,33 @@ details div { margin-top:8px; line-height:1.9; }
 .sheetbg { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; padding:16px; z-index:9; }
 .sheetbg .card { max-width:420px; width:100%; }
 code { background:var(--bg); padding:2px 6px; border-radius:6px; word-break:break-all; }
+
+.lesson p, .lesson li { line-height:1.8; }
+.intro { font-size:17px; color:var(--acc); }
+.f { display:block; background:var(--bg); border-right:3px solid var(--acc); padding:8px 10px; border-radius:6px; margin:8px 0; direction:ltr; text-align:left; overflow-x:auto; }
+.t { border-collapse:collapse; width:100%; margin:8px 0; font-size:14px; }
+.t td, .t th { border:1px solid var(--line); padding:6px; text-align:center; }
+.t th { color:var(--acc); }
+.plot { width:100%; height:auto; background:var(--bg); border-radius:10px; }
+.plot .ax { stroke:var(--mut); stroke-width:1; }
+.plot .axl, .plot .tick { fill:var(--mut); font-size:10px; }
+.plot .lbl { fill:var(--tx); font-size:10px; }
+.plot .ln { fill:none; stroke-width:2.2; }
+.plot .dash { stroke-width:1; stroke-dasharray:4 3; }
+.plot .c1 { stroke:var(--acc); } .plot .c2 { stroke:#4fc3c3; } .plot .c3 { stroke:var(--mut); } .plot .c4 { stroke:#5a5f7d; }
+.plot .lbl.c2 { fill:#4fc3c3; } .plot .lbl.c1 { fill:var(--acc); }
+.plot .pt { fill:var(--tx); stroke-width:2; } .plot .pt.c2 { fill:#4fc3c3; } .plot .pt.c1 { fill:var(--acc); }
+.plot .fill { stroke:none; fill-opacity:.18; } .plot .fill.c2 { fill:#4fc3c3; } .plot .fill.c1 { fill:var(--acc); }
+.plot .bar.b0 { fill:var(--acc); } .plot .bar.b1 { fill:#4fc3c3; } .plot .bar.b2 { fill:#8f8fe0; } .plot .bar.bad { fill:var(--bad); }
+.plot .box { fill:var(--bg); stroke:var(--tx); }
+.c1t { color:var(--acc); } .c2t { color:#4fc3c3; }
+.sliders label { display:grid; grid-template-columns:110px 1fr 70px; align-items:center; gap:8px; margin-top:8px; font-size:14px; }
+.sliders input { width:100%; accent-color:var(--acc); }
+.sliders b { font-weight:600; direction:ltr; text-align:left; font-size:13px; }
+.readout { margin-top:10px; background:var(--bg); border-radius:8px; padding:8px 10px; font-size:14px; line-height:1.8; }
+.steps li { opacity:.12; transition:opacity .5s, transform .5s; transform:translateY(4px); margin:6px 0; line-height:1.9; }
+.steps li.on { opacity:1; transform:none; }
+.circ { margin:8px 0; }
 #clock { font-variant-numeric:tabular-nums; color:var(--acc); }
 </style>
 </head>
@@ -295,6 +322,534 @@ const COURSES = {
 
 
 
+// Lessons: per topic {intro, body, graph(box), ex:{src, inputs}, traps[], exam}
+// Graph helper: interactive SVG plots with sliders.
+const NS = 'http://www.w3.org/2000/svg';
+function plot(box, o) {
+  const W = 340, H = 220, L = 46, R = 12, T = 12, B = 34;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'plot'); svg.setAttribute('dir', 'ltr');
+  box.append(svg);
+  const P = {
+    X: x => L + (x - o.x[0]) / (o.x[1] - o.x[0]) * (W - L - R),
+    Y: y => H - B - (y - o.y[0]) / (o.y[1] - o.y[0]) * (H - T - B),
+    el(tag, at, txt) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt !== undefined) e.textContent = txt; svg.append(e); return e; },
+    clear() { svg.innerHTML = ''; axes(); },
+    path(pts, cls = 'c1') { const d = pts.filter(p => isFinite(p[1])).map((p, i) => (i ? 'L' : 'M') + P.X(p[0]).toFixed(1) + ' ' + P.Y(Math.max(o.y[0], Math.min(o.y[1], p[1]))).toFixed(1)).join(''); return P.el('path', { d, class: 'ln ' + cls }); },
+    fn(f, cls, a = o.x[0], b = o.x[1], n = 160) { const pts = []; for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; pts.push([x, f(x)]); } return P.path(pts, cls); },
+    dot(x, y, label, cls = 'c2', dx = 6, dy = -6) { P.el('circle', { cx: P.X(x), cy: P.Y(y), r: 4, class: 'pt ' + cls }); if (label) P.el('text', { x: P.X(x) + dx, y: P.Y(y) + dy, class: 'lbl ' + cls }, label); },
+    hline(y, label, cls = 'c3') { P.el('line', { x1: P.X(o.x[0]), x2: P.X(o.x[1]), y1: P.Y(y), y2: P.Y(y), class: 'dash ' + cls }); if (label) P.el('text', { x: P.X(o.x[1]) - 4, y: P.Y(y) - 4, class: 'lbl ' + cls, 'text-anchor': 'end' }, label); },
+    vline(x, label, cls = 'c3') { P.el('line', { x1: P.X(x), x2: P.X(x), y1: P.Y(o.y[0]), y2: P.Y(o.y[1]), class: 'dash ' + cls }); if (label) P.el('text', { x: P.X(x) + 4, y: T + 12, class: 'lbl ' + cls }, label); },
+    area(f, a, b, cls = 'c1') { const pts = []; for (let i = 0; i <= 60; i++) { const x = a + (b - a) * i / 60; pts.push(`${P.X(x)},${P.Y(Math.min(o.y[1], f(x)))}`); } P.el('polygon', { points: `${P.X(a)},${P.Y(o.y[0])} ${pts.join(' ')} ${P.X(b)},${P.Y(o.y[0])}`, class: 'fill ' + cls }); },
+  };
+  function axes() {
+    P.el('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, class: 'ax' }); P.el('line', { x1: L, x2: L, y1: T, y2: H - B, class: 'ax' });
+    P.el('text', { x: W - R, y: H - 6, class: 'axl', 'text-anchor': 'end' }, o.xl); P.el('text', { x: 4, y: T + 4, class: 'axl' }, o.yl);
+    (o.xt || []).forEach(t => P.el('text', { x: P.X(t[0]), y: H - B + 14, class: 'tick', 'text-anchor': 'middle' }, t[1]));
+    (o.yt || []).forEach(t => P.el('text', { x: L - 4, y: P.Y(t[0]) + 4, class: 'tick', 'text-anchor': 'end' }, t[1]));
+  }
+  axes();
+  return P;
+}
+// sliders: [{k,label,min,max,step,v,f}] → calls draw(values) on every change
+function sliders(box, defs, draw) {
+  const wrap = document.createElement('div'); wrap.className = 'sliders'; box.append(wrap);
+  const out = document.createElement('div'); out.className = 'readout'; box.append(out);
+  const val = {};
+  defs.forEach(d => {
+    val[d.k] = d.v;
+    const r = document.createElement('label');
+    r.innerHTML = `<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.v}"><b></b>`;
+    const inp = r.querySelector('input'), b = r.querySelector('b');
+    const show = () => b.innerHTML = d.f ? d.f(+inp.value) : inp.value;
+    inp.oninput = () => { val[d.k] = +inp.value; show(); out.innerHTML = draw(val) || ''; isolateMath(out); };
+    show(); wrap.append(r);
+  });
+  out.innerHTML = draw(val) || ''; isolateMath(out);
+}
+const lg = Math.log10, e10 = x => 10 ** x;
+const sci = x => fmt(x, 3);
+
+// ---------------- התקני מל"מ ----------------
+const LESSONS = { semi: {}, energy: {} };
+const Ls = LESSONS.semi, Le = LESSONS.energy;
+
+Ls.alphaBeta = {
+  intro: 'שני מספרים מתארים כמה טוב הטרנזיסטור "מעביר" את זרם הפולט אל הקולט: α (כמה מהזרם הגיע) ו-β (הגבר הזרם).',
+  body: `<p>בפעיל קדמי האלקטרונים (ב-NPN) מוזרקים מהפולט לבסיס, חוצים אותו, ונאספים בקולט. חלק קטן אובד בדרך – הוא יוצא מהבסיס כזרם I<sub>B</sub>.</p>
+<p><b>חוק קירכהוף לטרנזיסטור:</b> I<sub>E</sub> = I<sub>C</sub> + I<sub>B</sub>. כל השאר נובע מזה:</p>
+<p class="f">α = I<sub>C</sub>/I<sub>E</sub> (מעט פחות מ-1) &nbsp;·&nbsp; β = I<sub>C</sub>/I<sub>B</sub> = α/(1−α) &nbsp;·&nbsp; α = β/(β+1)</p>
+<p><b>האינטואיציה:</b> β רגיש מאוד ל-α. כש-α עולה מ-0.99 ל-0.995 – β מכפיל את עצמו (99→199). לכן במבחן חשוב לא לעגל את α מוקדם מדי.</p>
+<p>α ≈ γ·α<sub>T</sub>: γ = נצילות ההזרקה (כמה מזרם הפולט הוא אלקטרונים ולא חורים שחזרו), α<sub>T</sub> = גורם המעבר בבסיס (כמה אלקטרונים לא עברו רקומבינציה).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0.9, 1], y: [0, 300], xl: 'α', yl: 'β', xt: [[0.9, '0.90'], [0.95, '0.95'], [0.99, '0.99']], yt: [[0, '0'], [100, '100'], [200, '200'], [300, '300']] });
+    sliders(box, [{ k: 'a', label: 'α', min: 0.9, max: 0.997, step: 0.001, v: 0.98 }], v => {
+      P.clear(); P.fn(a => a / (1 - a), 'c1', 0.9, 0.9967); const b = v.a / (1 - v.a); P.dot(v.a, Math.min(b, 300), 'β=' + b.toFixed(0));
+      return `I<sub>E</sub>=100 ⇒ I<sub>C</sub>=${(100 * v.a).toFixed(1)}, I<sub>B</sub>=${(100 * (1 - v.a)).toFixed(1)} · β = ${b.toFixed(1)}`;
+    });
+  },
+  ex: { src: 'תשע"ז מועד ב', inputs: { mode: 'IEIC', r: 1.0033 } },
+  traps: ['היחס I<sub>E</sub>/I<sub>C</sub> הוא 1/α – לא α.', 'עיגול α ל-0.997 במקום 0.99671 משנה את β מ-303 ל-332.', '"98% מזרם הפולט מגיע לקולט" ⇒ α = 0.98 ישירות.'],
+  exam: 'כמעט בכל מבחן, סעיף של 5–7% בשאלה 1 (BJT).',
+};
+Ls.reverse = {
+  intro: 'פעיל אחורי = הטרנזיסטור עובד "הפוך": הקולט מזריק והפולט אוסף. במבחנים זו שאלת חישוב קבועה עם I<sub>B</sub> = 50µA.',
+  body: `<p><b>מצבי פעולה לפי שני הצמתים:</b></p>
+<table class="t"><tr><th>מצב</th><th>צומת BE</th><th>צומת BC</th></tr><tr><td>פעיל קדמי</td><td>קדמי</td><td>אחורי</td></tr><tr><td>פעיל אחורי</td><td>אחורי</td><td>קדמי</td></tr><tr><td>רוויה</td><td>קדמי</td><td>קדמי</td></tr><tr><td>קטעון</td><td>אחורי</td><td>אחורי</td></tr></table>
+<p>בפעיל אחורי מחליפים את האינדקסים E↔C בכל הנוסחאות: I<sub>E</sub> = β<sub>R</sub>I<sub>B</sub>, I<sub>C</sub> = I<sub>E</sub> + I<sub>B</sub>.</p>
+<p><b>למה β<sub>R</sub> קטן (בדרך כלל 1–10)?</b> הקולט מסומם חלש ושטחו גדול, ולכן נצילות ההזרקה שלו γ<sub>R</sub> נמוכה. לכן β<sub>F</sub> > β<sub>R</sub> – וזו שאלת "הוכח" שחוזרת.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 4], y: [0, 1.2], xl: '', yl: 'mA', yt: [[0, '0'], [0.5, '0.5'], [1, '1.0']] });
+    sliders(box, [{ k: 'b', label: 'β<sub>R</sub>', min: 1, max: 20, step: 0.1, v: 8.9 }, { k: 'ib', label: 'I<sub>B</sub> µA', min: 10, max: 100, step: 5, v: 50 }], v => {
+      P.clear(); const ib = v.ib / 1000, ie = v.b * ib, ic = ie + ib;
+      [['I<sub>B</sub>', ib, 'c3'], ['I<sub>E</sub>', ie, 'c2'], ['I<sub>C</sub>', ic, 'c1']].forEach(([n, y], i) => {
+        P.el('rect', { x: P.X(0.5 + i * 1.2), y: P.Y(Math.min(y, 1.2)), width: 50, height: P.Y(0) - P.Y(Math.min(y, 1.2)), class: 'bar b' + i });
+        P.el('text', { x: P.X(0.5 + i * 1.2) + 25, y: P.Y(0) + 14, class: 'tick', 'text-anchor': 'middle' }, ['IB', 'IE', 'IC'][i]);
+      });
+      return `α<sub>R</sub> = ${(v.b / (v.b + 1)).toFixed(3)} · I<sub>E</sub> = ${(ie * 1000).toFixed(0)}µA · I<sub>C</sub> = ${(ic * 1000).toFixed(0)}µA (הגדול ביותר – הקולט "מזריק")`;
+    });
+  },
+  ex: { src: 'תשפ"ה סמ\' א מועד א', inputs: { aR: 0.899, IB: 50e-6 } },
+  traps: ['להשתמש ב-I<sub>C</sub> = βI<sub>B</sub> כמו בקדמי – בפעיל אחורי זה I<sub>E</sub> = β<sub>R</sub>I<sub>B</sub>.', 'בקורס מתייחסים לזרמים בפעיל אחורי כחיוביים (בלי סימן מינוס), אבל הכיוון הפוך.'],
+  exam: 'הופיע ב-9 מבחנים, כמעט תמיד עם I<sub>B</sub> = 50µA ו-α<sub>R</sub>≈0.9 או β<sub>R</sub>=8–9.',
+};
+Ls.baseDoping = {
+  intro: 'מתח קדמי על צומת BE מעלה את ריכוז נושאי המיעוט בתחילת הבסיס פי e<sup>V/V<sub>t</sub></sup>. מזה אפשר לחלץ את סימום הבסיס.',
+  body: `<p>בשיווי משקל, ריכוז האלקטרונים בבסיס P הוא n<sub>B0</sub> = n<sub>i</sub>²/N<sub>a</sub> (קטן מאוד).</p>
+<p>עם מתח קדמי V<sub>BE</sub> הם "מוזרקים": <span class="f">n<sub>B</sub>(x=0) = n<sub>B0</sub>·e<sup>V<sub>BE</sub>/V<sub>t</sub></sup></span></p>
+<p>בצד הקולט (צומת בממתח אחורי) הריכוז ≈ 0, ולכן הפרופיל בבסיס צר הוא <b>קו ישר יורד</b> – והשיפוע שלו קובע את זרם הדיפוזיה I<sub>nE</sub> = qAD<sub>n</sub>n<sub>B</sub>(0)/X<sub>B</sub>.</p>
+<p><b>כלל אצבע:</b> כל 60mV נוספים ב-V<sub>BE</sub> ⇒ n<sub>B</sub>(0) גדל פי 10.</p>
+<p>לחילוץ הסימום: <span class="f">N<sub>a</sub> = n<sub>i</sub>²·e<sup>V<sub>BE</sub>/V<sub>t</sub></sup> / n<sub>B</sub>(0)</span></p>`,
+  graph(box) {
+    const P = plot(box, { x: [0.5, 0.85], y: [10, 20], xl: 'V_BE [V]', yl: 'log n(0)', xt: [[0.5, '0.5'], [0.6, '0.6'], [0.7, '0.7'], [0.8, '0.8']], yt: [[10, '10¹⁰'], [15, '10¹⁵'], [20, '10²⁰']] });
+    sliders(box, [{ k: 'na', label: 'log N<sub>a</sub>', min: 15, max: 18, step: 0.1, v: 16.1, f: x => '10<sup>' + x + '</sup>' }, { k: 'v', label: 'V<sub>BE</sub>', min: 0.5, max: 0.85, step: 0.01, v: 0.7 }], v => {
+      P.clear(); const n0 = V => lg(K.ni ** 2 / e10(v.na)) + V / K.Vt / Math.LN10;
+      P.fn(n0, 'c1'); P.dot(v.v, n0(v.v), 'n(0)'); P.hline(v.na, 'N_a');
+      return `n<sub>B</sub>(0) = ${sci(e10(n0(v.v)))} cm<sup>-3</sup> ${e10(n0(v.v)) > e10(v.na) / 10 ? '<br>⚠ קרוב ל-N<sub>a</sub>: הזרקה גבוהה, ההנחות כבר לא מדויקות' : ''}`;
+    });
+  },
+  ex: { src: 'תשפ"ה סמ\' א מועד א', inputs: { V: 0.7, n: 1e16 } },
+  traps: ['להציב n<sub>B</sub>(0) במקום n<sub>B0</sub> (לפני ההכפלה באקספוננט).', 'V<sub>t</sub> = 0.0259V ולא 0.026 – באקספוננט זה משנה ~3%.', 'שימו לב אם נתון הריכוז "בתחילת הבסיס" או "באמצע" (x=X<sub>B</sub>/2 ⇒ חצי מ-n(0)).'],
+  exam: 'הופיע ב-7 מבחנים, תמיד עם n<sub>B</sub>(0) ≈ 10<sup>15</sup>–10<sup>16</sup> ו-V<sub>BE</sub> ≈ 0.7–0.75V.',
+};
+Ls.eiEf = {
+  intro: 'המרחק בין רמת פרמי לרמה האינטרינזית אומר מה סוג המל"מ ומה הסימום שלו.',
+  body: `<p>E<sub>i</sub> נמצאת בערך באמצע הפער. E<sub>f</sub> זזה לפי הסימום:</p>
+<p class="f">p<sub>0</sub> = n<sub>i</sub>·e<sup>(E<sub>i</sub>−E<sub>f</sub>)/kT</sup> &nbsp;⇒&nbsp; E<sub>i</sub>−E<sub>f</sub> = kT·ln(p<sub>0</sub>/n<sub>i</sub>)</p>
+<ul><li>E<sub>f</sub> <b>מתחת</b> ל-E<sub>i</sub> (חיובי) ⇒ יש יותר חורים ⇒ <b>P</b></li><li>E<sub>f</sub> <b>מעל</b> E<sub>i</sub> (שלילי) ⇒ <b>N</b></li></ul>
+<p><b>בקבל MOS בפסים ישרים (V<sub>G</sub>=V<sub>FB</sub>)</b> אין כיפוף פסים, ולכן הריכוז בממשק p<sub>s</sub> שווה לריכוז במצע. אם נתון p<sub>s</sub> = 10<sup>4</sup> – זה קטן מ-n<sub>i</sub>, כלומר המצע הוא <b>N</b> (n = n<sub>i</sub>²/p = 2.25×10<sup>16</sup>).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1], y: [-0.62, 0.62], xl: '', yl: 'E [eV]', yt: [[0.56, 'E_c'], [0, 'E_i'], [-0.56, 'E_v']] });
+    sliders(box, [{ k: 'p', label: 'log p', min: 2, max: 18, step: 0.1, v: 15, f: x => '10<sup>' + x + '</sup>' }], v => {
+      P.clear(); const d = K.Vt * Math.log(e10(v.p) / K.ni), ef = Math.max(-0.55, Math.min(0.55, -d));
+      P.hline(0.56, '', 'c3'); P.hline(-0.56, '', 'c3'); P.hline(0, '', 'c4');
+      P.path([[0.05, ef], [0.95, ef]], 'c2'); P.el('text', { x: P.X(0.5), y: P.Y(ef) - 6, class: 'lbl c2', 'text-anchor': 'middle' }, 'E_f');
+      return `E<sub>i</sub>−E<sub>f</sub> = ${d.toFixed(3)} eV ⇒ ${Math.abs(d) < 0.01 ? 'אינטרינזי' : d > 0 ? 'סוג <b>P</b>' : 'סוג <b>N</b>'} · n = ${sci(K.ni ** 2 / e10(v.p))}`;
+    });
+  },
+  ex: { src: 'תשע"ז מועד א', inputs: { ps: 1e15 } },
+  traps: ['מבלבלים בין kT ב-eV (0.0259) לבין V<sub>t</sub> ב-V – המספר זהה, היחידה שונה. התשובה כאן ב-eV.', 'p<sub>s</sub> קטן מ-n<sub>i</sub> ⇒ המצע N, לא P.'],
+  exam: 'סעיף א\' בשאלת MOS ב-6 מבחנים.',
+};
+Ls.vt = {
+  intro: 'מתח הסף הוא מתח השער שבו נוצרת תעלה: φ<sub>s</sub> = 2φ<sub>f</sub> (היפוך חזק). הוא סכום של שלושה מרכיבים.',
+  body: `<p class="f">V<sub>T</sub> = V<sub>FB</sub> + |Q<sub>dep,max</sub>|/C<sub>ox</sub> + 2|φ<sub>f</sub>| &nbsp;(NMOS, מצע P)</p>
+<ol><li><b>V<sub>FB</sub></b> – מבטל את הפרש פונקציות העבודה ואת מטעני התחמוצת (פסים ישרים).</li>
+<li><b>2φ<sub>f</sub></b> – כמה צריך לכופף את הפסים עד שבממשק יש יותר אלקטרונים מחורים במצע.</li>
+<li><b>Q<sub>dep</sub>/C<sub>ox</sub></b> – המתח שנופל על התחמוצת כדי "להחזיק" את מטען שכבת המחסור.</li></ol>
+<p class="f">φ<sub>f</sub> = V<sub>t</sub>ln(N/n<sub>i</sub>) · |Q<sub>dep,max</sub>| = √(4ε<sub>0</sub>ε<sub>si</sub>qNφ<sub>f</sub>)</p>
+<p><b>ב-PMOS (מצע N):</b> כל הסימנים מתהפכים: V<sub>T</sub> = V<sub>FB</sub> − |Q<sub>dep</sub>|/C<sub>ox</sub> − 2|φ<sub>f</sub>|.</p>
+<p><b>מספרים לזכור (N=10<sup>16</sup>):</b> φ<sub>f</sub> = 0.347V, 2φ<sub>f</sub> = 0.694V, |Q<sub>dep</sub>| = 47.95 nC/cm².</p>`,
+  graph(box) {
+    const P = plot(box, { x: [14, 18], y: [-1, 4], xl: 'log N', yl: 'V_T [V]', xt: [[14, '10¹⁴'], [16, '10¹⁶'], [18, '10¹⁸']], yt: [[-1, '-1'], [0, '0'], [2, '2'], [4, '4']] });
+    sliders(box, [{ k: 'c', label: 'C<sub>ox</sub> nF/cm²', min: 20, max: 300, step: 1, v: 80 }, { k: 'fb', label: 'V<sub>FB</sub>', min: -1, max: 1, step: 0.05, v: -0.8 }, { k: 'n', label: 'log N', min: 14, max: 18, step: 0.1, v: 16 }], v => {
+      P.clear(); const vt = x => { const N = e10(x), pf = K.Vt * Math.log(N / K.ni), Q = Math.sqrt(4 * K.e0 * K.esi * K.q * N * pf); return v.fb + Q / (v.c * 1e-9) + 2 * pf; };
+      P.fn(vt, 'c1'); P.hline(0, '', 'c4'); P.dot(v.n, vt(v.n), 'V_T');
+      const N = e10(v.n), pf = K.Vt * Math.log(N / K.ni), Q = Math.sqrt(4 * K.e0 * K.esi * K.q * N * pf);
+      return `V<sub>FB</sub> ${v.fb} + Q/C<sub>ox</sub> ${(Q / (v.c * 1e-9)).toFixed(3)} + 2φ<sub>f</sub> ${(2 * pf).toFixed(3)} = <b>${vt(v.n).toFixed(3)} V</b><br>תחמוצת דקה (C<sub>ox</sub> גדול) ⇒ V<sub>T</sub> קטן`;
+    });
+  },
+  ex: { src: 'תשפ"ה סמ\' א מועד א', inputs: { N: 1e16, VFB: -0.8, Cox: 80, type: 'n' } },
+  traps: ['שוכחים להכפיל φ<sub>f</sub> ב-2.', 'Q<sub>dep</sub> ב-C/cm² ו-C<sub>ox</sub> ב-F/cm² – לבדוק שהיחידות מצטמצמות ל-V (nC/nF = V).', 'ב-PMOS מקבלים V<sub>T</sub> שלילי. אם יצא חיובי – כנראה טעות סימן.'],
+  exam: 'הנושא הכי חוזר: 10 מבחנים. כמעט תמיד N = 10<sup>16</sup>.',
+};
+Ls.tox = {
+  intro: 'עקומת C–V של קבל MOS: בהצטברות הקבל מתנהג כקבל לוחות רגיל – C<sub>mos</sub> = C<sub>ox</sub>. מזה מחלצים את עובי התחמוצת.',
+  body: `<p><b>שלושת האזורים (מצע P):</b></p><ul>
+<li><b>הצטברות</b> (V<sub>G</sub> < V<sub>FB</sub>): חורים מצטברים בממשק ⇒ C = C<sub>ox</sub>.</li>
+<li><b>מחסור</b>: נוצרת שכבת מחסור ברוחב X<sub>d</sub> – קבל נוסף בטור ⇒ C יורד.</li>
+<li><b>היפוך</b> (V<sub>G</sub> > V<sub>T</sub>): בתדר <b>נמוך</b> נושאי המיעוט מספיקים להגיב ⇒ C חוזר ל-C<sub>ox</sub>. בתדר <b>גבוה</b> לא ⇒ C נשאר ב-C<sub>min</sub>.</li></ul>
+<p class="f">C<sub>ox</sub> = ε<sub>0</sub>ε<sub>ox</sub>/t<sub>ox</sub> ⇒ t<sub>ox</sub> = 8.85×10<sup>-14</sup>·3.9/C<sub>ox</sub></p>
+<p>1Å = 10<sup>-8</sup>cm · 1nm = 10Å.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-3, 4], y: [0, 1.1], xl: 'V_G [V]', yl: 'C/C_ox', xt: [[-2, '-2'], [0, '0'], [2, '2'], [4, '4']], yt: [[0, '0'], [0.5, '0.5'], [1, '1']] });
+    sliders(box, [{ k: 't', label: 't<sub>ox</sub> Å', min: 100, max: 1000, step: 10, v: 442 }], v => {
+      P.clear(); const N = 1e16, Cox = K.e0 * K.eox / (v.t * 1e-8), pf = K.Vt * Math.log(N / K.ni), es = K.e0 * K.esi;
+      const VG = ps => ps + Math.sqrt(2 * es * K.q * N * ps) / Cox, Cm = ps => { const Cs = es / Math.sqrt(2 * es * ps / (K.q * N)); return Cs * Cox / (Cs + Cox) / Cox; };
+      const VT = VG(2 * pf), cmin = Cm(2 * pf), dep = [], lf = [];
+      for (let i = 1; i <= 80; i++) { const ps = 2 * pf * i / 80; dep.push([VG(ps), Cm(ps)]); }
+      P.path([[-3, 1], [-0.3, 0.98], ...dep, [4, cmin]], 'c1');
+      P.path([[VT, cmin], [VT + 0.4, 0.8], [VT + 1, 0.97], [4, 1]], 'c2');
+      P.vline(0, 'V_FB'); P.vline(VT, 'V_T');
+      return `C<sub>ox</sub> = ${(Cox * 1e9).toFixed(1)} nF/cm² · V<sub>T</sub> ≈ ${VT.toFixed(2)}V (V<sub>FB</sub>=0) · C<sub>min</sub>/C<sub>ox</sub> = ${cmin.toFixed(2)}<br><span class="c1t">━ תדר גבוה</span> &nbsp; <span class="c2t">━ תדר נמוך</span>`;
+    });
+  },
+  ex: { src: 'תשפ"ה סמ\' א מועד ב', inputs: { C: 78 } },
+  traps: ['C<sub>ox</sub> נתון ב-nF/cm² – להכפיל ב-10<sup>-9</sup> לפני החילוק.', 'בהיפוך חזק בתדר גבוה C ≠ C<sub>ox</sub>. רק בתדר נמוך.', 'לציין את התשובה ב-Å או nm כמו שהשאלה מבקשת.'],
+  exam: '6 מבחנים, לרוב יחד עם זיהוי האזור בעקומת C–V.',
+};
+Ls.xd = {
+  intro: 'שכבת המחסור גדלה עם המתח על המל"מ (φ<sub>s</sub>) עד שמגיעים להיפוך חזק – ושם היא נעצרת ב-X<sub>dT</sub>.',
+  body: `<p class="f">X<sub>d</sub> = √(2ε<sub>0</sub>ε<sub>si</sub>φ<sub>s</sub>/(qN)) · Q<sub>dep</sub> = −qNX<sub>d</sub> · C<sub>s</sub> = ε<sub>0</sub>ε<sub>si</sub>/X<sub>d</sub></p>
+<p>בהיפוך חזק φ<sub>s</sub> = 2φ<sub>f</sub> ⇒ <span class="f">X<sub>dT</sub> = √(4ε<sub>0</sub>ε<sub>si</sub>φ<sub>f</sub>/(qN))</span>. מעבר לזה כל מטען נוסף נכנס לתעלה ולא לשכבת המחסור.</p>
+<p>הקיבול הכולל הוא <b>שני קבלים בטור</b>: 1/C<sub>mos</sub> = 1/C<sub>ox</sub> + 1/C<sub>s</sub>. ב-X<sub>dT</sub> מתקבל C<sub>min</sub> (תדר גבוה).</p>
+<p><b>זכור:</b> N=10<sup>16</sup> ⇒ X<sub>dT</sub> ≈ 300nm.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 0.9], y: [0, 1200], xl: 'φ_s [V]', yl: 'X_d [nm]', xt: [[0, '0'], [0.3, '0.3'], [0.6, '0.6'], [0.9, '0.9']], yt: [[0, '0'], [400, '400'], [800, '800'], [1200, '1200']] });
+    sliders(box, [{ k: 'n', label: 'log N', min: 15, max: 17.5, step: 0.1, v: 16, f: x => '10<sup>' + x + '</sup>' }, { k: 'k', label: 'φ<sub>s</sub>/φ<sub>f</sub>', min: 0.1, max: 2, step: 0.1, v: 1.5 }], v => {
+      P.clear(); const N = e10(v.n), pf = K.Vt * Math.log(N / K.ni), X = ps => Math.sqrt(2 * K.e0 * K.esi * ps / (K.q * N)) * 1e7;
+      P.fn(X, 'c1', 0, 2 * pf); P.path([[2 * pf, X(2 * pf)], [0.9, X(2 * pf)]], 'c3'); P.vline(2 * pf, '2φf'); P.dot(v.k * pf, X(v.k * pf), 'X_d');
+      return `φ<sub>f</sub> = ${pf.toFixed(3)}V · X<sub>d</sub> = ${X(v.k * pf).toFixed(0)}nm · X<sub>dT</sub> = ${X(2 * pf).toFixed(0)}nm<br>סימום גבוה יותר ⇒ שכבת מחסור צרה יותר`;
+    });
+  },
+  ex: { src: 'תשפ"ה סמ\' א מועד א', inputs: { N: 1e16, k: 1.5, Cox: 80 } },
+  traps: ['להשתמש ב-4ε (של X<sub>dT</sub>) כשהשאלה נותנת φ<sub>s</sub> אחר – אז חוזרים ל-2εφ<sub>s</sub>.', 'X<sub>d</sub> יוצא ב-cm – להמיר ל-nm (×10<sup>7</sup>).'],
+  exam: '7 מבחנים, בדרך כלל יחד עם Q<sub>dep</sub> ו-C<sub>mos</sub>.',
+};
+Ls.ids = {
+  intro: 'אופיין הזרם של MOSFET: עד נקודת הצביטה הזרם עולה (תחום ליניארי), ומעבר לה הוא קבוע (רוויה).',
+  body: `<table class="t"><tr><th>תחום</th><th>תנאי</th><th>זרם</th></tr>
+<tr><td>קטעון</td><td>V<sub>GS</sub> ≤ V<sub>T</sub></td><td>0</td></tr>
+<tr><td>ליניארי</td><td>V<sub>DS</sub> < V<sub>GS</sub>−V<sub>T</sub></td><td>K[(V<sub>GS</sub>−V<sub>T</sub>)V<sub>DS</sub> − V<sub>DS</sub>²/2]</td></tr>
+<tr><td>רוויה</td><td>V<sub>DS</sub> ≥ V<sub>GS</sub>−V<sub>T</sub></td><td>½K(V<sub>GS</sub>−V<sub>T</sub>)²</td></tr></table>
+<p>K = μC<sub>ox</sub>W/L. <b>V<sub>DS(sat)</sub> = V<sub>GS</sub> − V<sub>T</sub></b> – זו "נקודת הצביטה", שבה התעלה נסגרת בצד ה-Drain.</p>
+<p><b>שיטה במבחן:</b> קודם מחשבים V<sub>DS(sat)</sub>, משווים ל-V<sub>DS</sub> הנתון, ורק אז בוחרים נוסחה.</p>
+<p>ב-PMOS הכול בערכים מוחלטים והזרם בכיוון הפוך.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 3], y: [0, 4], xl: 'V_DS [V]', yl: 'I_DS [mA]', xt: [[0, '0'], [1, '1'], [2, '2'], [3, '3']], yt: [[0, '0'], [2, '2'], [4, '4']] });
+    sliders(box, [{ k: 'vt', label: 'V<sub>T</sub>', min: 0.3, max: 1.5, step: 0.05, v: 0.5 }, { k: 'vg', label: 'V<sub>GS</sub>', min: 0.5, max: 3, step: 0.1, v: 2 }, { k: 'k', label: 'K mA/V²', min: 0.5, max: 3, step: 0.1, v: 2 }], v => {
+      P.clear(); const I = (vg, vd) => { const s = vg - v.vt; if (s <= 0) return 0; return vd < s ? v.k * (s * vd - vd * vd / 2) : 0.5 * v.k * s * s; };
+      for (let g = v.vt + 0.5; g <= 3.01; g += 0.5) P.fn(x => I(g, x), 'c4');
+      P.fn(x => 0.5 * v.k * x * x, 'c3'); P.fn(x => I(v.vg, x), 'c1');
+      const s = Math.max(0, v.vg - v.vt); P.dot(s, I(v.vg, s), 'pinch-off');
+      return `V<sub>DS(sat)</sub> = ${s.toFixed(2)}V · I<sub>DS(max)</sub> = ${(0.5 * v.k * s * s).toFixed(2)}mA<br>הקו המקווקו = מקום כל נקודות הצביטה (½K·V<sub>DS</sub>²)`;
+    });
+  },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { VT: 1.31, VGS: 1.5, K: 2e-3, VDS: 0.1 } },
+  traps: ['להשתמש בנוסחת הרוויה כש-V<sub>DS</sub> קטן מ-V<sub>DS(sat)</sub>.', 'לשכוח את ה-½ בנוסחת הרוויה.', 'K נתון ב-A/V² או mA/V² – לבדוק.'],
+  exam: 'כמעט בכל מבחן, בסוף שאלת MOS (5–10%).',
+};
+Ls.absorb = {
+  intro: 'עוצמת האור דועכת אקספוננציאלית בתוך החומר. מקדם הבליעה α אומר כמה מהר.',
+  body: `<p class="f">I(x) = I<sub>0</sub>·e<sup>−αx</sup> &nbsp;·&nbsp; נבלע עד עומק d: 1 − e<sup>−αd</sup></p>
+<p>1/α הוא "עומק החדירה" – שם נשארים ~37% מהאור. α תלוי ב<b>אורך הגל</b> וב<b>סוג החומר</b> (פער אנרגיה ישיר/עקיף).</p>
+<p><b>לגלאי בשכבה דקה</b> רוצים α <b>גבוה</b> – כדי שרוב האור ייבלע בשכבה.</p>
+<p>עובי ב-µm ⇒ להמיר ל-cm (×10<sup>-4</sup>) כי α ב-cm<sup>-1</sup>.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 3], y: [0, 1.05], xl: 'x [µm]', yl: 'I/I0', xt: [[0, '0'], [1, '1'], [2, '2'], [3, '3']], yt: [[0, '0'], [0.5, '0.5'], [1, '1']] });
+    sliders(box, [{ k: 'a', label: 'log α', min: 3, max: 5.5, step: 0.05, v: 4.26, f: x => sci(e10(x)) + ' cm⁻¹' }, { k: 'd', label: 'd µm', min: 0.1, max: 3, step: 0.01, v: 0.28 }], v => {
+      P.clear(); const a = e10(v.a), f = x => Math.exp(-a * x * 1e-4);
+      P.area(f, 0, v.d, 'c2'); P.fn(f, 'c1'); P.vline(v.d, 'd'); P.dot(v.d, f(v.d), (f(v.d) * 100).toFixed(0) + '% עבר');
+      return `נבלע: <b>${((1 - f(v.d)) * 100).toFixed(1)}%</b> · עבר: ${(f(v.d) * 100).toFixed(1)}% · עומק חדירה 1/α = ${(1e4 / a).toFixed(2)}µm`;
+    });
+  },
+  ex: { src: 'תשע"ט מועד א – 60% <u>הגיע</u> לעומק 280nm', inputs: { mode: 'findA', f: 40, d: 0.28 } },
+  traps: ['"הגיע לעומק" = עבר, "נבלע בשכבה" = נבלע. במבחן תשע"ט 60% הגיע ⇒ 40% נבלע.', 'לשכוח להמיר µm/nm ל-cm.'],
+  exam: '10 מבחנים, בשאלה 3 (אופטו).',
+};
+Ls.eg = {
+  intro: 'פוטון נבלע (או נפלט) רק אם האנרגיה שלו מתאימה לפער האנרגיה E<sub>g</sub>.',
+  body: `<p class="f">E = hν = hc/λ &nbsp;⇒&nbsp; E[eV] = 1.24/λ[µm]</p>
+<ul><li><b>LED / לייזר</b> פולטים בערך באנרגיה E<sub>g</sub> ⇒ λ = 1.24/E<sub>g</sub>.</li>
+<li><b>גלאי</b> מגיב לכל פוטון עם E ≥ E<sub>g</sub> ⇒ λ ≤ λ<sub>c</sub> = 1.24/E<sub>g</sub> (אורך גל קטעון).</li></ul>
+<p>λ = c/ν, c = 2.998×10<sup>10</sup> cm/s. 600THz ⇒ 0.5µm ⇒ 2.48eV (ירוק).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0.2, 1.8], y: [0, 6.5], xl: 'λ [µm]', yl: 'E [eV]', xt: [[0.4, '0.4'], [0.7, '0.7'], [1.1, '1.1'], [1.5, '1.5']], yt: [[1.12, 'Si'], [1.42, 'GaAs'], [3.4, 'GaN']] });
+    sliders(box, [{ k: 'l', label: 'λ nm', min: 200, max: 1800, step: 10, v: 680 }], v => {
+      P.clear(); P.fn(l => 1.24 / l, 'c1'); [[1.12, 'Si'], [1.42, 'GaAs'], [3.4, 'GaN'], [0.75, 'InGaAs']].forEach(([e]) => P.hline(e, '', 'c4'));
+      const l = v.l / 1000, E = 1.24 / l, h = l < 0.38 ? 'UV' : l < 0.45 ? 'סגול' : l < 0.495 ? 'כחול' : l < 0.57 ? 'ירוק' : l < 0.59 ? 'צהוב' : l < 0.62 ? 'כתום' : l < 0.75 ? 'אדום' : 'IR';
+      P.dot(l, E, E.toFixed(2) + 'eV');
+      const abs = [['Si', 1.12], ['GaAs', 1.42], ['GaN', 3.4], ['InGaAs', 0.75]].filter(m => E >= m[1]).map(m => m[0]).join(', ') || 'אף אחד';
+      return `${h} · E = <b>${E.toFixed(2)} eV</b> · ν = ${(2.998e14 / l / 1e12).toFixed(0)} THz<br>גלאים שיבלעו אותו: ${abs}`;
+    });
+  },
+  ex: { src: 'תשע"ז מועד ב', inputs: { f: 600 } },
+  traps: ['λ ב-nm במקום µm בנוסחת 1.24.', 'h ב-J·s נותן אנרגיה ב-J – לחלק ב-1.6×10<sup>-19</sup> כדי לקבל eV.', 'גלאי מ-Si לא רואה 1.55µm (0.8eV < 1.12eV).'],
+  exam: '9 מבחנים. גם "מאיזה חומר לבנות גלאי" ו"איזה אורכי גל יזוהו".',
+};
+Ls.solar = {
+  intro: 'תא שמש = דיודה מוארת. האור יוצר זרם I<sub>L</sub> שמסתובב נגד כיוון זרם הדיודה.',
+  body: `<p class="f">I = I<sub>L</sub> − I<sub>s</sub>(e<sup>V/V<sub>t</sub></sup> − 1)</p>
+<ul><li><b>קצר (V=0):</b> I<sub>sc</sub> = I<sub>L</sub>.</li><li><b>מעגל פתוח (I=0):</b> V<sub>oc</sub> = V<sub>t</sub>ln(I<sub>L</sub>/I<sub>s</sub> + 1).</li>
+<li><b>הספק מקסימלי:</b> הנקודה שבה המלבן V·I הכי גדול (V<sub>m</sub>, I<sub>m</sub>).</li></ul>
+<p><b>מה תלוי בהארה?</b> I<sub>L</sub>, I<sub>sc</sub>, I<sub>m</sub> – כן. I<sub>s</sub> (זרם הרוויה של הדיודה) – <b>לא</b>, הוא תלוי רק בחומר ובטמפרטורה.</p>
+<p>הגדלת הארה פי 10 ⇒ I<sub>sc</sub> פי 10, אבל V<sub>oc</sub> עולה רק בכ-60mV (לוגריתם).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 0.75], y: [0, 120], xl: 'V [V]', yl: 'I [mA]', xt: [[0, '0'], [0.25, '0.25'], [0.5, '0.5'], [0.75, '0.75']], yt: [[0, '0'], [50, '50'], [100, '100']] });
+    sliders(box, [{ k: 'il', label: 'I<sub>L</sub> mA (הארה)', min: 5, max: 110, step: 1, v: 75 }, { k: 's', label: 'log I<sub>s</sub>', min: -13, max: -10, step: 0.1, v: -11.5, f: x => sci(e10(x)) + 'A' }], v => {
+      P.clear(); const Is = e10(v.s) * 1e3, I = V => v.il - Is * (Math.exp(V / K.Vt) - 1), voc = K.Vt * Math.log(v.il / Is + 1);
+      let best = [0, 0]; for (let V = 0; V < voc; V += 0.001) if (V * I(V) > best[0] * best[1]) best = [V, I(V)];
+      P.el('rect', { x: P.X(0), y: P.Y(best[1]), width: P.X(best[0]) - P.X(0), height: P.Y(0) - P.Y(best[1]), class: 'fill c2' });
+      P.fn(V => I(V) >= 0 ? I(V) : NaN, 'c1', 0, voc); P.dot(0, v.il, 'I_sc', 'c1', 6, 14); P.dot(voc, 0, 'V_oc', 'c1', -30, -8); P.dot(best[0], best[1], 'P_max');
+      return `I<sub>sc</sub> = ${v.il}mA · V<sub>oc</sub> = <b>${voc.toFixed(3)}V</b> · P<sub>max</sub> = ${(best[0] * best[1]).toFixed(1)}mW (FF ${(best[0] * best[1] / (voc * v.il)).toFixed(2)})`;
+    });
+  },
+  ex: { src: 'תשע"ז מועד א / תשפ"ב', inputs: { mode: 'isc', Voc: 0.62, Is: 3e-12 } },
+  traps: ['להפוך את סימן I<sub>L</sub> – בקורס I<sub>L</sub> חיובי והדיודה מחסירה.', 'לחשוב ש-I<sub>s</sub> תלוי בהארה.', 'לשכוח להוסיף 1 בתוך הלוגריתם כשמחשבים V<sub>oc</sub> מ-I<sub>L</sub> קטן.'],
+  exam: 'הנושא הכי חוזר באופטו: 12 מבחנים.',
+};
+Ls.crit = {
+  intro: 'רוב האור שנוצר ב-LED לא יוצא, כי הוא פוגע בגבול עם האוויר בזווית גדולה מהזווית הקריטית ומוחזר פנימה.',
+  body: `<p class="f">sinθ<sub>c</sub> = n<sub>2</sub>/n<sub>1</sub> &nbsp;·&nbsp; ניצולת הזווית הקריטית: η<sub>c</sub> = ½(1 − cosθ<sub>c</sub>)</p>
+<p>רק אור בתוך "חרוט היציאה" (זווית < θ<sub>c</sub>) יוצא. ל-GaAs (n=3.66) לאוויר: θ<sub>c</sub> ≈ 15.8° ⇒ רק ~1.9% יוצא מפאה אחת.</p>
+<p><b>פתרונות:</b> כיפה מפלסטיק (מקדם שבירה ביניים – מגדיל θ<sub>c</sub>), ציפוי נגד החזרה (מקטין הפסדי פרנל), צורת שבב.</p>
+<p><b>הפסד פרנל:</b> גם בזווית ישרה חלק מוחזר: R = ((n<sub>1</sub>−n<sub>2</sub>)/(n<sub>1</sub>+n<sub>2</sub>))².</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-1.2, 1.2], y: [-1, 1.2], xl: '', yl: '' });
+    sliders(box, [{ k: 'n1', label: 'n<sub>1</sub> (מל"מ)', min: 1.5, max: 4, step: 0.01, v: 3.66 }, { k: 'n2', label: 'n<sub>2</sub> (תווך)', min: 1, max: 1.6, step: 0.01, v: 1 }], v => {
+      P.clear(); const th = Math.asin(Math.min(1, v.n2 / v.n1)), eta = (1 - Math.cos(th)) / 2;
+      P.path([[-1.2, 0], [1.2, 0]], 'c4'); P.el('text', { x: P.X(-1.1), y: P.Y(0.1), class: 'lbl' }, 'n2'); P.el('text', { x: P.X(-1.1), y: P.Y(-0.15), class: 'lbl' }, 'n1');
+      P.el('polygon', { points: `${P.X(0)},${P.Y(-0.9)} ${P.X(Math.tan(th) * 0.9)},${P.Y(0)} ${P.X(-Math.tan(th) * 0.9)},${P.Y(0)}`, class: 'fill c2' });
+      P.path([[0, -0.9], [Math.tan(th) * 0.9, 0]], 'c2'); P.path([[0, -0.9], [-Math.tan(th) * 0.9, 0]], 'c2');
+      P.path([[0, -0.9], [0.9, 0], [1.2, -0.3]], 'c3'); P.dot(0, -0.9, 'מקור');
+      const R = ((v.n1 - v.n2) / (v.n1 + v.n2)) ** 2;
+      return `θ<sub>c</sub> = <b>${(th * 180 / Math.PI).toFixed(1)}°</b> · η<sub>c</sub> = ${(eta * 100).toFixed(2)}% · פרנל R = ${(R * 100).toFixed(1)}%<br>הקרן הצהובה פוגעת בזווית גדולה ⇒ החזרה מלאה`;
+    });
+  },
+  ex: { src: 'תשפ"א מועד ב', inputs: { n1: 3.66, n2: 1 } },
+  traps: ['להפוך n<sub>1</sub>/n<sub>2</sub> – מקבלים sin > 1.', 'מחשבון במצב רדיאנים.'],
+  exam: '5 מבחנים, לרוב יחד עם "איזה מבנה משפר את הניצולת".',
+};
+
+// ---------------- המרת אנרגיה ----------------
+Le.parallel = {
+  intro: 'כששני שנאים עובדים במקביל, העומס לא מתחלק לפי ההספק הנומינלי אלא לפי מתח הקצר: השנאי ה"קשיח" יותר (v<sub>sc</sub> נמוך) לוקח יותר.',
+  body: `<p>שני השנאים מחוברים לאותו מתח, ולכן מפל המתח עליהם שווה. מפל המתח ∝ β·v<sub>sc</sub> (β = מקדם העומס) ⇒ β<sub>1</sub>v<sub>sc1</sub> = β<sub>2</sub>v<sub>sc2</sub>.</p>
+<p class="f">S<sub>α</sub> = S<sub>T</sub>·S<sub>n.α</sub> / (v<sub>sc.α</sub>[S<sub>n.α</sub>/v<sub>sc.α</sub> + S<sub>n.β</sub>/v<sub>sc.β</sub>])</p>
+<p><b>שלבים:</b> 1) S<sub>T</sub> = P/cosφ. 2) מחשבים את המכנה. 3) S לכל שנאי. 4) משווים ל-S<sub>n</sub> – מי בעומס יתר?</p>
+<p><b>תנאים לחיבור במקביל:</b> אותו יחס השנאה, אותה קבוצת חיבור (שעון), ו-v<sub>sc</sub> קרובים (עד ~10% הפרש).</p>
+<p><b>העומס המקסימלי</b> בלי עומס יתר: השנאי עם v<sub>sc</sub> הנמוך מגיע ראשון ל-100%.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 4], y: [0, 1.5], xl: '', yl: 'S/Sn', yt: [[0, '0'], [0.5, '50%'], [1, '100%'], [1.5, '150%']] });
+    sliders(box, [{ k: 'v1', label: 'v<sub>sc1</sub>%', min: 3, max: 8, step: 0.1, v: 5.5 }, { k: 'v2', label: 'v<sub>sc2</sub>%', min: 3, max: 8, step: 0.1, v: 6 }, { k: 'st', label: 'S<sub>T</sub> kVA', min: 20, max: 200, step: 1, v: 125 }], v => {
+      P.clear(); const S1 = 100, S2 = 40, D = S1 / v.v1 + S2 / v.v2, a = v.st / (v.v1 * D), b = v.st / (v.v2 * D);
+      P.hline(1, '100%', 'c3');
+      [[a, 'T1 100kVA'], [b, 'T2 40kVA']].forEach(([y, n], i) => {
+        P.el('rect', { x: P.X(0.6 + i * 1.6), y: P.Y(Math.min(y, 1.5)), width: 60, height: P.Y(0) - P.Y(Math.min(y, 1.5)), class: 'bar ' + (y > 1 ? 'bad' : 'b' + i) });
+        P.el('text', { x: P.X(0.6 + i * 1.6) + 30, y: P.Y(0) + 14, class: 'tick', 'text-anchor': 'middle' }, n);
+      });
+      const max = Math.min(v.v1, v.v2) * D;
+      return `S<sub>1</sub> = ${(a * S1).toFixed(1)} kVA (${(a * 100).toFixed(0)}%) · S<sub>2</sub> = ${(b * S2).toFixed(1)} kVA (${(b * 100).toFixed(0)}%)<br>עומס מקסימלי בלי עומס יתר: <b>${max.toFixed(1)} kVA</b> (פחות מ-140!)`;
+    });
+  },
+  ex: { src: 'תשע"א סמ\' א מועד א', inputs: { S1: 100, v1: 5.5, S2: 40, v2: 6, P: 100, cos: 0.8 } },
+  traps: ['לחלק לפי S<sub>n</sub> בלבד (100:40) ולהתעלם מ-v<sub>sc</sub>.', 'לשכוח ש-P ב-kW ו-S ב-kVA: S<sub>T</sub> = P/cosφ.'],
+  exam: 'שאלה 1 כמעט בכל מבחן של אקסלרוד, כולל "האם אפשר לחבר עומס נוסף".',
+};
+Le.regulation = {
+  intro: 'שני מספרים מאפיינים שנאי בעומס: כמה המתח יורד (ויסות) וכמה הספק הולך לאיבוד (נצילות).',
+  body: `<p><b>מניסוי קצר</b> מקבלים ΔP<sub>Cu.n</sub> ו-v<sub>sc</sub>; <b>מניסוי ריקם</b> – ΔP<sub>Fe</sub> ו-I<sub>0</sub>.</p>
+<p class="f">v<sub>r</sub>% = ΔP<sub>Cu.n</sub>/S<sub>n</sub>·100 · v<sub>x</sub>% = √(v<sub>sc</sub>² − v<sub>r</sub>²)</p>
+<p class="f">Δv% = β(v<sub>r</sub>cosφ + v<sub>x</sub>sinφ)</p>
+<p class="f">η = βS<sub>n</sub>cosφ / (βS<sub>n</sub>cosφ + ΔP<sub>Fe</sub> + β²ΔP<sub>Cu.n</sub>)</p>
+<p><b>נצילות מקסימלית</b> כשהפסדי הנחושת = הפסדי הברזל: β<sub>opt</sub> = √(ΔP<sub>Fe</sub>/ΔP<sub>Cu.n</sub>).</p>
+<p>בעומס קיבולי sinφ שלילי ⇒ Δv יכול להיות שלילי (המתח <b>עולה</b>).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1.3], y: [90, 100], xl: 'β', yl: 'η %', xt: [[0, '0'], [0.5, '0.5'], [1, '1'], [1.3, '1.3']], yt: [[90, '90'], [95, '95'], [100, '100']] });
+    sliders(box, [{ k: 'r', label: 'ΔP<sub>Fe</sub>/ΔP<sub>Cu</sub>', min: 0.1, max: 1, step: 0.05, v: 0.4 }, { k: 'cu', label: 'ΔP<sub>Cu.n</sub> % מ-S<sub>n</sub>', min: 0.5, max: 3, step: 0.1, v: 1.5 }, { k: 'c', label: 'cosφ', min: 0.6, max: 1, step: 0.05, v: 0.8 }], v => {
+      P.clear(); const cu = v.cu / 100, fe = cu * v.r, eta = b => 100 * b * v.c / (b * v.c + fe + b * b * cu), bo = Math.sqrt(v.r);
+      P.fn(b => eta(b), 'c1', 0.01, 1.3); P.vline(bo, 'β_opt'); P.dot(bo, eta(bo), (eta(bo)).toFixed(2) + '%');
+      return `β<sub>opt</sub> = √(${v.r}) = <b>${bo.toFixed(2)}</b> · η<sub>max</sub> = ${eta(bo).toFixed(2)}% · η בעומס מלא = ${eta(1).toFixed(2)}%`;
+    });
+  },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { Sn: 100, vsc: 5, Pcu: 1.5, PFe: 0.6, b: 0.75, cos: 0.8 } },
+  traps: ['להכפיל ΔP<sub>Cu</sub> ב-β במקום ב-β².', 'להציב cosφ גם במקום sinφ.', 'בתלת-פאזי: S<sub>n</sub> הוא ההספק הכולל, לא לפאזה.'],
+  exam: 'מופיע כסעיף בשאלת השנאים ברוב המבחנים.',
+};
+Le.equiv = {
+  intro: 'מעגל התמורה של השנאי מחליף אותו במעגל של נגדים וסלילים. מניסויי ריקם וקצר מוצאים את הפרמטרים שלו.',
+  body: `<div class="circ">${circuitSVG()}</div>
+<p><b>ענף טורי</b> (R<sub>1</sub>+R'<sub>2</sub>, X<sub>1</sub>+X'<sub>2</sub>): הפסדי נחושת ושטף פיזור – נמדד ב<b>ניסוי קצר</b> (מתח נמוך, זרם נומינלי).</p>
+<p><b>ענף מקבילי</b> (R<sub>C</sub> ∥ X<sub>φ</sub>): הפסדי ברזל וזרם מגנוט – נמדד ב<b>ניסוי ריקם</b> (מתח נומינלי, אין עומס).</p>
+<p class="f">ריקם: R<sub>C</sub> = V²/P<sub>0</sub> · I<sub>0</sub> = V√(1/R<sub>C</sub>² + 1/X<sub>φ</sub>²)</p>
+<p class="f">קצר: Z<sub>sc</sub> = V<sub>sc</sub>/I<sub>n</sub> · R<sub>sc</sub> = P<sub>sc</sub>/I<sub>n</sub>² · v<sub>sc</sub>% = I<sub>n</sub>|Z<sub>sc</sub>|/V<sub>n</sub>·100</p>
+<p>הפניה לצד ראשוני: R'<sub>2</sub> = a²R<sub>2</sub>, a = w<sub>1</sub>/w<sub>2</sub>. "מעגל L" = מזיזים את הענף המקבילי לכניסה – מותר כשהשאלה אומרת זאת.</p>`,
+  graph: null,
+  ex: { src: 'תש"ע סמ\' ב מועד א', inputs: { Sn: 30, V1: 2400, R: 4.26, X: 7.89, Rc: 19500, Xp: 4962 } },
+  traps: ['לחבר את הענף המקבילי בטור.', 'לשכוח להפנות R<sub>2</sub>, X<sub>2</sub> לצד הראשוני (×a²).', 'בתלת-פאזי בכוכב: מתח פאזה = V<sub>line</sub>/√3.'],
+  exam: 'שאלה 1 בחלק מהמבחנים (במקום שנאים במקביל).',
+};
+Le.induction = {
+  intro: 'מנוע השראה מסתובב קצת לאט מהשדה המסתובב. ההפרש היחסי – ההחלקה s – קובע הכול.',
+  body: `<p class="f">n<sub>s</sub> = 60f/p · s = (n<sub>s</sub> − n)/n<sub>s</sub></p>
+<p>n<sub>s</sub> ב-50Hz: 3000/1500/1000/750 rpm. <b>טריק:</b> אם נתון n<sub>n</sub> = 1425, n<sub>s</sub> הוא הערך הקרוב שמעליו = 1500.</p>
+<p class="f">M<sub>n</sub> = P<sub>n</sub>/ω<sub>n</sub>, ω = 2πn/60 · M<sub>max</sub> = λM<sub>n</sub></p>
+<p><b>נוסחת קלוס:</b> <span class="f">M = 2M<sub>max</sub>/(s/s<sub>cr</sub> + s<sub>cr</sub>/s)</span> ⇒ מהנקודה הנומינלית: s<sub>cr</sub> = s<sub>n</sub>(λ + √(λ²−1)).</p>
+<p><b>זרימת הספק:</b> P<sub>g</sub> (מרווח אוויר) = Mω<sub>s</sub> · ΔP<sub>Cu2</sub> = sP<sub>g</sub> · P<sub>mech</sub> = (1−s)P<sub>g</sub>.</p>
+<p>הגדלת נגד ברוטור מגדילה את s<sub>cr</sub> אבל <b>לא</b> משנה את M<sub>max</sub> – כך מגדילים מומנט התנעה.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1500], y: [0, 3.2], xl: 'n [rpm]', yl: 'M/Mn', xt: [[0, '0'], [500, '500'], [1000, '1000'], [1500, '1500']], yt: [[0, '0'], [1, '1'], [2, '2'], [3, '3']] });
+    sliders(box, [{ k: 'l', label: 'λ', min: 1.5, max: 3.2, step: 0.1, v: 2.5 }, { k: 'n', label: 'n<sub>n</sub>', min: 1350, max: 1480, step: 5, v: 1425 }], v => {
+      P.clear(); const sn = (1500 - v.n) / 1500, scr = sn * (v.l + Math.sqrt(v.l ** 2 - 1)), M = n => { const s = (1500 - n) / 1500; return 2 * v.l / (s / scr + scr / s); };
+      P.fn(M, 'c1', 0, 1499.9); P.hline(1, 'Mn', 'c4'); P.dot(v.n, 1, 'נומינלי', 'c2', -52, -8); P.dot(1500 * (1 - scr), v.l, 'M_max'); P.dot(0, M(0), 'התנעה', 'c3', 6, 14);
+      return `s<sub>n</sub> = ${sn.toFixed(3)} · s<sub>cr</sub> = <b>${scr.toFixed(3)}</b> · n<sub>cr</sub> = ${(1500 * (1 - scr)).toFixed(0)} rpm · M<sub>start</sub> = ${M(0).toFixed(2)}M<sub>n</sub><br>אזור יציב: מימין ל-M<sub>max</sub> (n > n<sub>cr</sub>)`;
+    });
+  },
+  ex: { src: 'תשע"א סמ\' א מועד א', inputs: { ns: 1500, n: 1425, P: 4, lam: 2.5 } },
+  traps: ['להציב n ב-rpm במקום ω ב-rad/s בחישוב המומנט.', 'P<sub>n</sub> הוא הספק <b>מכני</b> במוצא.', 'בנוסחת קלוס לקחת את הפתרון הקטן של s (האזור היציב).'],
+  exam: 'שאלה 2 בכמעט כל מבחן.',
+};
+Le.inductionLoad = {
+  intro: 'נקודת העבודה של המנוע היא החיתוך בין עקומת המומנט שלו לבין קו העומס.',
+  body: `<p>בעומס מומנט קבוע M<sub>L</sub>, פותרים את נוסחת קלוס עבור s:</p>
+<p class="f">s = s<sub>cr</sub>(r − √(r² − 1)), r = M<sub>max</sub>/M<sub>L</sub></p>
+<p>לוקחים את השורש עם המינוס – זו הנקודה היציבה (בין s=0 ל-s<sub>cr</sub>). אם M<sub>L</sub> > M<sub>max</sub> – המנוע נעצר.</p>
+<p><b>קירוב שימושי:</b> באזור העבודה העקומה כמעט ישרה: s ≈ s<sub>n</sub>·M<sub>L</sub>/M<sub>n</sub>.</p>
+<p><b>שינוי מתח:</b> M ∝ V² ⇒ ירידה של 10% במתח ⇒ ירידה של 19% במומנט, וההחלקה גדלה.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [1100, 1500], y: [0, 3], xl: 'n [rpm]', yl: 'M/Mn', xt: [[1100, '1100'], [1300, '1300'], [1500, '1500']], yt: [[0, '0'], [1, '1'], [2, '2'], [3, '3']] });
+    sliders(box, [{ k: 'k', label: 'M<sub>L</sub>/M<sub>n</sub>', min: 0.1, max: 2.6, step: 0.05, v: 0.5 }, { k: 'u', label: 'V/V<sub>n</sub>', min: 0.7, max: 1.1, step: 0.01, v: 1 }], v => {
+      P.clear(); const sn = 0.05, l = 2.5, scr = sn * (l + Math.sqrt(l * l - 1)), M = n => { const s = (1500 - n) / 1500; return v.u ** 2 * 2 * l / (s / scr + scr / s); };
+      P.fn(M, 'c1', 1100, 1499.9); P.hline(v.k, 'M_L', 'c2');
+      const r = v.u ** 2 * l / v.k;
+      if (r < 1) return '⚠ M<sub>L</sub> > M<sub>max</sub> – המנוע נעצר';
+      const s = scr * (r - Math.sqrt(r * r - 1)); P.dot(1500 * (1 - s), v.k, 'נקודת עבודה');
+      return `s = ${s.toFixed(4)} · n = <b>${(1500 * (1 - s)).toFixed(0)} rpm</b> · M<sub>max</sub> במתח הזה = ${(v.u ** 2 * l).toFixed(2)}M<sub>n</sub>`;
+    });
+  },
+  ex: { src: 'תשע"א סמ\' א מועד א', inputs: { ns: 1500, n: 1425, lam: 2.5, k: 0.5 } },
+  traps: ['לבחור את השורש עם הפלוס – זה האזור הלא יציב.', 'לשכוח ש-M<sub>max</sub> משתנה עם V².'],
+  exam: 'סעיף ב\'–ג\' בשאלת מנוע ההשראה.',
+};
+Le.dcSelf = {
+  intro: 'גנרטור DC בעירור עצמי מזין בעצמו את סליל העירור. נקודת העבודה היא החיתוך בין עקומת המגנוט לבין קו נגד העירור.',
+  body: `<p class="f">E = V + I<sub>a</sub>R<sub>a</sub> · I<sub>a</sub> = I<sub>f</sub> + I<sub>L</sub> (מקבילי) · I<sub>f</sub> = V/R<sub>f</sub></p>
+<p>עקומת המגנוט E(I<sub>f</sub>) נתונה (במבחנים לרוב E = A√I<sub>f</sub>). הקו V = R<sub>f</sub>·I<sub>f</sub> הוא "קו השדה".</p>
+<p><b>התנאים לבניית מתח:</b> מגנטיות שארית, חיבור נכון של הסליל, ו-R<sub>f</sub> קטן מ<b>ההתנגדות הקריטית</b> (שיפוע העקומה בהתחלה).</p>
+<p><b>שיטת פתרון:</b> מציבים את כל הקשרים במשוואה אחת ב-√I<sub>f</sub> ⇒ משוואה ריבועית ⇒ השורש הקטן (הפיזיקלי).</p>
+<p><b>מנוע DC:</b> V = E + I<sub>a</sub>R<sub>a</sub>, ω = (V−I<sub>a</sub>R<sub>a</sub>)/(kΦ). נגד בטור לרוטור ⇒ מהירות יורדת.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 12], y: [0, 600], xl: 'I_f [A]', yl: 'V [V]', xt: [[0, '0'], [4, '4'], [8, '8'], [12, '12']], yt: [[0, '0'], [200, '200'], [400, '400'], [600, '600']] });
+    sliders(box, [{ k: 'a', label: 'A (E=A√I<sub>f</sub>)', min: 100, max: 250, step: 5, v: 200 }, { k: 'rf', label: 'R<sub>f</sub> Ω', min: 20, max: 300, step: 1, v: 89 }], v => {
+      P.clear(); P.fn(i => v.a * Math.sqrt(i), 'c1'); P.fn(i => v.rf * i, 'c2');
+      const If = (v.a / v.rf) ** 2; P.dot(If, v.rf * If, 'נקודת עבודה');
+      return `ללא עומס: I<sub>f</sub> = (A/R<sub>f</sub>)² = ${If.toFixed(2)}A · V ≈ <b>${(v.rf * If).toFixed(0)}V</b><br>R<sub>f</sub> גדול ⇒ קו תלול ⇒ מתח נמוך. בעקומה אמיתית (רוויה) מעל R<sub>f</sub> קריטי המתח לא נבנה.`;
+    });
+  },
+  ex: { src: 'תשע"א סמ\' א מועד א', inputs: { Ra: 0.5, A: 200, RL: 10, V: 400 } },
+  traps: ['לשכוח את I<sub>f</sub> בתוך I<sub>a</sub> (I<sub>a</sub> = I<sub>f</sub> + I<sub>L</sub>).', 'לקחת את השורש הגדול של המשוואה הריבועית.'],
+  exam: 'שאלה 3 בחלק מהמבחנים (לסירוגין עם סינכרוני).',
+};
+Le.synch = {
+  intro: 'במכונה סינכרונית הקשר בין המתח הפנימי E למתח ההדקים V הוא חיבור וקטורי פשוט – וזווית העומס δ ביניהם קובעת את ההספק.',
+  body: `<p class="f">גנרטור: Ẽ = Ṽ + jXĨ &nbsp;·&nbsp; מנוע: Ṽ = Ẽ + jXĨ</p>
+<p class="f">P = 3V<sub>ph</sub>I<sub>ph</sub>cosφ = 3V<sub>ph</sub>E<sub>ph</sub>sinδ/X</p>
+<p><b>שלבים:</b> 1) V<sub>ph</sub> = V<sub>L</sub>/√3 (כוכב). 2) I = P/(√3V<sub>L</sub>cosφ). 3) Ĩ = I∠−φ (השראי) או ∠+φ (קיבולי). 4) מחשבים Ẽ ברכיבים: Re = V + XI·sinφ, Im = XI·cosφ.</p>
+<p><b>עירור:</b> עירור יתר (E גדול) ⇒ המכונה מספקת הספק היגבי (כמו קבל). עירור חסר ⇒ צורכת.</p>
+<p>δ<sub>max</sub> = 90° – מעבר לזה המכונה יוצאת מסינכרון.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 400], y: [-60, 220], xl: 'Re', yl: 'Im' });
+    sliders(box, [{ k: 'phi', label: 'φ° (− קיבולי)', min: -60, max: 60, step: 1, v: 37 }, { k: 'i', label: 'I A', min: 10, max: 100, step: 1, v: 76 }, { k: 'x', label: 'X Ω', min: 0.5, max: 3, step: 0.1, v: 2 }], v => {
+      P.clear(); const V = 219.4, ph = v.phi * Math.PI / 180, Ix = v.i * Math.cos(ph), Iy = -v.i * Math.sin(ph);
+      const Ex = V - v.x * Iy, Ey = v.x * Ix;
+      P.path([[0, 0], [V, 0]], 'c4'); P.path([[0, 0], [Ix, Iy]], 'c3'); P.path([[V, 0], [Ex, Ey]], 'c2'); P.path([[0, 0], [Ex, Ey]], 'c1');
+      P.dot(V, 0, 'V', 'c4', 4, 14); P.dot(Ix, Iy, 'I', 'c3'); P.dot(Ex, Ey, 'E', 'c1');
+      const E = Math.hypot(Ex, Ey), d = Math.atan2(Ey, Ex) * 180 / Math.PI;
+      return `E<sub>ph</sub> = <b>${E.toFixed(1)}V</b> · δ = <b>${d.toFixed(1)}°</b> · ${E > V ? 'עירור יתר' : 'עירור חסר'}<br><span class="c2t">━ jXI</span> מאונך ל-I`;
+    });
+  },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { P: 40, VL: 380, cos: 0.8, X: 2 } },
+  traps: ['להשתמש ב-V<sub>L</sub> במקום V<sub>ph</sub>.', 'לשכוח שבמנוע הסימן של jXI הפוך.', 'זווית δ היא בין E ל-V, לא בין I ל-V.'],
+  exam: 'שאלה 3 בחלק מהמבחנים: מספרים פשוטים + דיאגרמה וקטורית.',
+};
+
+function circuitSVG() {
+  return `<svg viewBox="0 0 340 130" class="plot" dir="ltr">
+<path class="ln c4" d="M20 30 H60 M100 30 H130 M180 30 H230 M230 30 H320 M20 110 H320 M80 30 V55 M80 85 V110 M50 30 V55 M50 85 V110"/>
+<rect class="box" x="60" y="22" width="40" height="16"/><text class="lbl" x="66" y="16">R₁+R'₂</text>
+<path class="ln c1" d="M130 30 q6 -12 12 0 q6 -12 12 0 q6 -12 12 0 q6 -12 12 0"/><text class="lbl c1" x="132" y="14">X₁+X'₂</text>
+<rect class="box" x="42" y="55" width="16" height="30"/><text class="lbl" x="18" y="74">R_C</text>
+<path class="ln c2" d="M80 55 q-10 4 0 8 q-10 4 0 8 q-10 4 0 8 q-10 4 0 6"/><text class="lbl c2" x="88" y="74">X_φ</text>
+<rect class="box" x="300" y="45" width="16" height="50"/><path class="ln c4" d="M308 30 V45 M308 95 V110"/><text class="lbl" x="270" y="74">Z'_L</text>
+<text class="lbl" x="6" y="74">V₁</text><circle cx="20" cy="30" r="3" class="pt c4"/><circle cx="20" cy="110" r="3" class="pt c4"/></svg>`;
+}
+
+// ---------- exam strategy pages ----------
+const STRATEGY = {
+  semi: `<h3>מבנה המבחן (בר-דע, 17 מבחנים 2017–2026)</h3>
+<table class="t"><tr><th>שאלה</th><th>נושא</th><th>משקל</th><th>זמן מומלץ</th></tr>
+<tr><td>1</td><td>BJT</td><td>35%</td><td>60 דק'</td></tr><tr><td>2</td><td>MOS-FET</td><td>40%</td><td>70 דק'</td></tr><tr><td>3</td><td>התקני אור</td><td>25%</td><td>40 דק'</td></tr></table>
+<p>שאלות פתוחות. כל סעיף: פתרון מלא + תשובה סופית <b>מודגשת עם יחידות</b>. צירוף בלי חישוב = 0.</p>
+<h3>הסעיפים שכמעט תמיד מופיעים</h3><ol>
+<li>זיהוי סוג ומצב הטרנזיסטור (משרטוט/גרף/פסים) – <b>נקודות קלות</b>, תתחיל מהם.</li>
+<li>α, β מיחס זרמים · פעיל אחורי עם I<sub>B</sub>=50µA · סימום הבסיס מ-n(0).</li>
+<li>φ<sub>f</sub>, Q<sub>dep</sub>, V<sub>T</sub> עבור N=10<sup>16</sup> – <b>תשנן: 0.347V, 47.95nC/cm², X<sub>dT</sub>≈300nm</b>.</li>
+<li>t<sub>ox</sub> מ-C<sub>ox</sub> · V<sub>DS(sat)</sub> ו-I<sub>DS</sub>.</li>
+<li>תא שמש · מקדם בליעה · E<sub>g</sub>↔λ · לייזר (מהוד, מונוכרומטי, קוהרנטי).</li></ol>
+<h3>שאלות מילוליות שחוזרות</h3><ul>
+<li>למה β<sub>F</sub> > β<sub>R</sub>? (סימום פולט גבוה, γ<sub>R</sub> נמוך)</li>
+<li>מה תפקיד המהוד בלייזר? (משוב אופטי, מראות, בחירת מודים – מונוכרומטיות)</li>
+<li>אילו זרמים בתא שמש תלויים בהארה? (I<sub>L</sub>, I<sub>sc</sub>, I<sub>m</sub> כן; I<sub>s</sub> לא)</li>
+<li>האם גלאי בשכבה דקה צריך α גבוה או נמוך? (גבוה)</li>
+<li>למה כיפה מפלסטיק ב-LED? (מגדילה θ<sub>c</sub> ⇒ יותר אור יוצא)</li></ul>
+<h3>טיפים לדף הנוסחאות</h3><p>הדף מגיע עם המבחן. תדע <b>איפה</b> כל נוסחה – לא צריך לשנן אותן, אבל צריך לדעת מתי להשתמש בכל אחת (אינדקסים מתחלפים בפעיל אחורי; סימנים מתהפכים ב-PMOS).</p>`,
+  energy: `<h3>מבנה המבחן (אקסלרוד, 50012)</h3>
+<p>180 דקות (בחלק מהשנים 150), <b>3 שאלות שוות ערך</b> – כ-55–60 דק' לשאלה. מותר להשתמש בדף הנוסחאות ובמחשבון.</p>
+<table class="t"><tr><th>שאלה</th><th>נושא</th><th>מה שואלים</th></tr>
+<tr><td>1</td><td>שנאים</td><td>במקביל (חלוקת עומס, עומס מקסימלי) או מעגל תמורה (ריקם/קצר, v<sub>sc</sub>, I<sub>0</sub>, ויסות, נצילות)</td></tr>
+<tr><td>2</td><td>מנוע השראה</td><td>s, M<sub>n</sub>, M<sub>max</sub>, s<sub>cr</sub>, מהירות בעומס חלקי, נגד התנעה, ירידת מתח</td></tr>
+<tr><td>3</td><td>DC / סינכרוני</td><td>גנרטור DC בעירור עצמי, או גנרטור סינכרוני: E, δ, דיאגרמה וקטורית</td></tr></table>
+<h3>שיטת עבודה</h3><ol><li>תרשום את כל הנתונים עם יחידות, ותמיר: kW→W, rpm→rad/s, V<sub>L</sub>→V<sub>ph</sub>.</li>
+<li>תצייר: מעגל תמורה / עקומת מומנט / דיאגרמה וקטורית – גם אם לא ביקשו. זה עוזר לא לטעות בסימנים.</li>
+<li>תבדוק סבירות: s בין 0.01 ל-0.08, η של שנאי מעל 95%, δ קטנה מ-90°.</li></ol>
+<h3>שאלות שחוזרות משנים ישנות</h3><p>המרצה חוזר על שאלות גם מלפני 15 שנה – עם מספרים אחרים. מה שחשוב הוא לזהות את <b>סוג</b> השאלה מהר. בתרגול כאן המספרים משתנים כל פעם בדיוק בשביל זה.</p>`,
+};
+
+// Wrap every run of Latin/math inside Hebrew text in <bdi dir=ltr>, so formulas keep their order in RTL lines.
+const HEB = /[א-ת]/;
+function isolateMath(root) {
+  root.querySelectorAll('p, li, td, th, h1, h3, .readout, .q, .topic span').forEach(el => { if (!el.closest('.f, svg, bdi')) fixEl(el); });
+  if (root.matches?.('.readout')) fixEl(root);
+}
+function fixEl(el) {
+  const toks = [];
+  [...el.childNodes].forEach(n => {
+    if (n.nodeType === 3) n.textContent.split(/([א-ת][א-ת׳״"'\s–-]*[א-ת"']|[א-ת])/).forEach(s => s && toks.push({ heb: HEB.test(s), node: document.createTextNode(s) }));
+    else if (n.nodeType === 1 && !HEB.test(n.textContent) && !n.matches('.f, br, svg, button, input, ol, ul, table')) toks.push({ heb: false, node: n });
+    else { if (n.nodeType === 1 && !n.matches('.f, svg, bdi')) fixEl(n); toks.push({ heb: true, node: n }); }
+  });
+  if (!toks.some(t => !t.heb) || !toks.some(t => t.heb)) return;
+  const frag = document.createDocumentFragment(); let run = [];
+  const flush = () => {
+    if (!run.length) return;
+    const txt = run.map(t => t.node.textContent).join('');
+    if (/[A-Za-z0-9φγαβηδθλμεωΩÅ√]/.test(txt)) {
+      // Keep edge punctuation outside the LTR box: spaces, ",.:;", a prefix hyphen (ב-PMOS), and unbalanced parentheses.
+      const bal = () => { const t = run.map(x => x.node.textContent).join(''); return (t.match(/\(/g) || []).length - (t.match(/\)/g) || []).length; };
+      let lead = '', tail = '';
+      while (run.length && run[0].node.nodeType === 3) {
+        const t = run[0].node.textContent, c = t[0];
+        if (t === '') { lead += ''; run.shift(); continue; }
+        const move = /[\s:;,.]/.test(c) || (/[-–]/.test(c) && lead === '' && /^[-–][A-Za-z0-9]/.test(t)) || (c === '(' && bal() > 0) || (c === ')' && bal() < 0);
+        if (!move) break; lead += c; run[0].node.textContent = t.slice(1);
+      }
+      while (run.length && run.at(-1).node.nodeType === 3) {
+        const t = run.at(-1).node.textContent, c = t.at(-1);
+        if (t === '') { run.pop(); continue; }
+        const move = /[\s:;,.\-–]/.test(c) || (c === ')' && bal() < 0) || (c === '(' && bal() > 0);
+        if (!move) break; tail = c + tail; run.at(-1).node.textContent = t.slice(0, -1);
+      }
+      if (!run.some(x => /[A-Za-z0-9φγαβηδθλμεωΩÅ√]/.test(x.node.textContent))) { frag.append(lead); run.forEach(t => frag.append(t.node)); frag.append(tail); run = []; return; }
+      const b = document.createElement('bdi'); b.dir = 'ltr'; run.forEach(t => b.append(t.node));
+      frag.append(lead, b, tail);
+    } else run.forEach(t => frag.append(t.node));
+    run = [];
+  };
+  toks.forEach(t => { if (t.heb) { flush(); frag.append(t.node); } else run.push(t); });
+  flush();
+  el.replaceChildren(frag);
+}
+
 const SB_URL = 'https://enhqzgjqqyubgfysnjib.supabase.co';
 const SB_KEY = 'sb_publishable_w3aqbIxj_ECmMOUhANPebw_thGqD9o1';
 const sb = supabase.createClient(SB_URL, SB_KEY);
@@ -407,12 +962,44 @@ function courseView(id) {
       `<button class="topic" data-t="${k}"><span>${t.title}</span><em>${pctTxt(progress[id]?.[k])}</em></button>`).join('')).join('');
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${C.name}</h1></header>
     <div class="row"><button class="primary" id="weak">תרגול נקודות חולשה</button><button class="primary" id="exam">מבחן מלא (${C.minutes} דק')</button></div>
-    <button class="ghost wide" id="sheet">דף נוסחאות</button>${groups}`;
+    <div class="row"><button class="ghost" id="strat">🎯 איך נראה המבחן</button><button class="ghost" id="sheet">📄 דף נוסחאות</button></div>
+    <p class="hint">בחר נושא: 📖 שיעור עם גרף ופתרון מודרך, ואז ✏️ תרגול.</p>${groups}`;
   $('#back').onclick = homeView;
   $('#sheet').onclick = () => sheetView(id);
+  $('#strat').onclick = () => { app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>איך נראה המבחן</h1></header><div class="card lesson">${STRATEGY[id]}</div>`; $('#back').onclick = () => courseView(id); isolateMath(app()); scrollTo(0, 0); };
   $('#weak').onclick = () => practice(id, weakest(id));
   $('#exam').onclick = () => examView(id);
-  app().querySelectorAll('[data-t]').forEach(b => b.onclick = () => practice(id, [b.dataset.t]));
+  app().querySelectorAll('[data-t]').forEach(b => b.onclick = () => lessonView(id, b.dataset.t));
+}
+function lessonView(id, k) {
+  clearInterval(timer);
+  const t = COURSES[id].topics[k], L = LESSONS[id][k], q = t.gen(L.ex.inputs), steps = q.sol.split('<br>');
+  app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${t.title}</h1></header>
+    <div class="card lesson"><p class="intro">${L.intro}</p>${L.body}</div>
+    ${L.graph ? '<div class="card"><h3>📈 גרף אינטראקטיבי – הזז את המחוונים</h3><div id="g"></div></div>' : ''}
+    <div class="card"><h3>🎬 פתרון מודרך – ${L.ex.src}</h3><p class="q">${nb(q.text)}</p>
+      <ol id="steps" class="steps">${steps.map((s, i) => `<li data-i="${i}">${nb(s)}</li>`).join('')}</ol>
+      <div class="row"><button class="ghost" id="prev">◀ הקודם</button><button class="primary" id="play">▶ הפעל</button><button class="ghost" id="nextS">הבא ▶</button></div></div>
+    <div class="card"><h3>⚠ טעויות נפוצות</h3><ul>${L.traps.map(x => `<li>${x}</li>`).join('')}</ul><h3>📋 במבחנים</h3><p>${L.exam}</p></div>
+    <button class="primary wide" id="go">✏️ לתרגול – ${pctTxt(progress[id]?.[k])} דיוק עד עכשיו</button>`;
+  isolateMath(app());
+  if (L.graph) L.graph($('#g'));
+  let cur = 0;
+  const lis = [...app().querySelectorAll('#steps li')];
+  const show = () => { lis.forEach((li, i) => li.className = i < cur ? 'on' : ''); $('#prev').disabled = cur === 0; $('#nextS').disabled = cur === lis.length; };
+  const stop = () => { clearInterval(timer); $('#play').textContent = '▶ הפעל'; };
+  $('#prev').onclick = () => { stop(); cur = Math.max(0, cur - 1); show(); };
+  $('#nextS').onclick = () => { stop(); cur = Math.min(lis.length, cur + 1); show(); };
+  $('#play').onclick = () => {
+    if ($('#play').textContent.includes('עצור')) return stop();
+    if (cur === lis.length) cur = 0;
+    $('#play').textContent = '⏸ עצור'; cur++; show();
+    timer = setInterval(() => { if (cur >= lis.length) return stop(); cur++; show(); }, 2500);
+  };
+  show();
+  $('#back').onclick = () => courseView(id);
+  $('#go').onclick = () => practice(id, [k]);
+  scrollTo(0, 0);
 }
 function weakest(id) {
   const score = k => { const s = progress[id]?.[k]; return s && s.a ? s.c / s.a : 0.5; };
@@ -451,6 +1038,7 @@ function practice(id, keys) {
     <div class="card"><p class="q">${nb(q.text)}</p>${partsHTML(q, 0)}
     <div class="row"><button class="primary" id="check">בדוק</button><button class="ghost" id="next">שאלה אחרת</button></div>
     <details id="sol" hidden><summary>פתרון מלא</summary><div>${nb(q.sol)}</div></details></div>`;
+  isolateMath(app());
   $('#back').onclick = () => courseView(id);
   $('#next').onclick = () => practice(id, keys);
   $('#check').onclick = () => {
@@ -470,6 +1058,7 @@ function examView(id) {
     ${qs.map(({ k, q }, i) => `<div class="card"><h3>שאלה ${i + 1} · ${C.groups[C.topics[k].group]}</h3><p class="q">${nb(q.text)}</p>${partsHTML(q, i)}
       <details hidden class="esol"><summary>פתרון</summary><div>${nb(q.sol)}</div></details></div>`).join('')}
     <button class="primary wide" id="submit">הגשה</button><p id="score" class="score"></p>`;
+  isolateMath(app());
   const tick = () => { $('#clock').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; if (left-- <= 0) submit(); };
   const submit = () => {
     clearInterval(timer);
