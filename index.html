@@ -56,7 +56,7 @@ code { background:var(--bg); padding:2px 6px; border-radius:6px; word-break:brea
 .t { border-collapse:collapse; width:100%; margin:8px 0; font-size:14px; }
 .t td, .t th { border:1px solid var(--line); padding:6px; text-align:center; }
 .t th { color:var(--acc); }
-.plot { width:100%; height:auto; background:var(--bg); border-radius:10px; }
+.plot { direction:ltr; unicode-bidi:isolate; width:100%; height:auto; background:var(--bg); border-radius:10px; }
 .plot .ax { stroke:var(--mut); stroke-width:1; }
 .plot .axl, .plot .tick { fill:var(--mut); font-size:10px; }
 .plot .lbl { fill:var(--tx); font-size:10px; }
@@ -76,6 +76,23 @@ code { background:var(--bg); padding:2px 6px; border-radius:6px; word-break:brea
 .steps li { opacity:.12; transition:opacity .5s, transform .5s; transform:translateY(4px); margin:6px 0; line-height:1.9; }
 .steps li.on { opacity:1; transform:none; }
 .circ { margin:8px 0; }
+bdi[dir=ltr] { display:inline-block; direction:ltr; unicode-bidi:isolate; max-width:100%; vertical-align:middle; background:rgba(242,184,75,.09); border:1px solid rgba(242,184,75,.18); border-radius:6px; padding:0 5px; margin:1px 1px; line-height:1.6; font-family:"Cambria Math","STIX Two Math","Times New Roman",serif; font-size:1.03em; white-space:normal; text-align:left; }
+.steps bdi[dir=ltr], .readout bdi[dir=ltr] { background:rgba(242,184,75,.06); }
+h1 bdi[dir=ltr], .topic bdi[dir=ltr], .sliders bdi[dir=ltr], .part label bdi[dir=ltr] { background:none; border:0; padding:0; font-family:inherit; font-size:inherit; }
+.mc { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.choice { display:flex; gap:10px; align-items:center; text-align:right; border:1px solid var(--line); background:var(--bg); padding:12px; }
+.choice b { color:var(--acc); min-width:18px; }
+.choice.sel { border-color:var(--acc); background:rgba(242,184,75,.1); }
+.choice.right { border-color:var(--ok); background:rgba(79,195,138,.15); }
+.choice.wrong { border-color:var(--bad); background:rgba(239,107,107,.15); }
+.mc i { font-style:normal; font-size:14px; }
+.vid { background:var(--bg); border-radius:12px; padding:6px; }
+.vcap { min-height:4.2em; margin:8px 4px 2px; font-size:16px; line-height:1.8; }
+.vcap.in { animation:capIn .5s ease; }
+@keyframes capIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.vdots { display:flex; gap:6px; justify-content:center; margin-top:10px; }
+.vdots span { width:22px; height:5px; border-radius:3px; background:var(--line); cursor:pointer; }
+.vdots span.done { background:#7a6332; } .vdots span.cur { background:var(--acc); }
 #clock { font-variant-numeric:tabular-nums; color:var(--acc); }
 </style>
 </head>
@@ -626,7 +643,7 @@ Le.parallel = {
   intro: 'כששני שנאים עובדים במקביל, העומס לא מתחלק לפי ההספק הנומינלי אלא לפי מתח הקצר: השנאי ה"קשיח" יותר (v<sub>sc</sub> נמוך) לוקח יותר.',
   body: `<p>שני השנאים מחוברים לאותו מתח, ולכן מפל המתח עליהם שווה. מפל המתח ∝ β·v<sub>sc</sub> (β = מקדם העומס) ⇒ β<sub>1</sub>v<sub>sc1</sub> = β<sub>2</sub>v<sub>sc2</sub>.</p>
 <p class="f">S<sub>α</sub> = S<sub>T</sub>·S<sub>n.α</sub> / (v<sub>sc.α</sub>[S<sub>n.α</sub>/v<sub>sc.α</sub> + S<sub>n.β</sub>/v<sub>sc.β</sub>])</p>
-<p><b>שלבים:</b> 1) S<sub>T</sub> = P/cosφ. 2) מחשבים את המכנה. 3) S לכל שנאי. 4) משווים ל-S<sub>n</sub> – מי בעומס יתר?</p>
+<p><b>שלבים:</b></p><ol><li>S<sub>T</sub> = P/cosφ.</li><li>מחשבים את המכנה.</li><li>S לכל שנאי.</li><li>משווים ל-S<sub>n</sub> – מי בעומס יתר?.</li></ol>
 <p><b>תנאים לחיבור במקביל:</b> אותו יחס השנאה, אותה קבוצת חיבור (שעון), ו-v<sub>sc</sub> קרובים (עד ~10% הפרש).</p>
 <p><b>העומס המקסימלי</b> בלי עומס יתר: השנאי עם v<sub>sc</sub> הנמוך מגיע ראשון ל-100%.</p>`,
   graph(box) {
@@ -744,7 +761,7 @@ Le.synch = {
   intro: 'במכונה סינכרונית הקשר בין המתח הפנימי E למתח ההדקים V הוא חיבור וקטורי פשוט – וזווית העומס δ ביניהם קובעת את ההספק.',
   body: `<p class="f">גנרטור: Ẽ = Ṽ + jXĨ &nbsp;·&nbsp; מנוע: Ṽ = Ẽ + jXĨ</p>
 <p class="f">P = 3V<sub>ph</sub>I<sub>ph</sub>cosφ = 3V<sub>ph</sub>E<sub>ph</sub>sinδ/X</p>
-<p><b>שלבים:</b> 1) V<sub>ph</sub> = V<sub>L</sub>/√3 (כוכב). 2) I = P/(√3V<sub>L</sub>cosφ). 3) Ĩ = I∠−φ (השראי) או ∠+φ (קיבולי). 4) מחשבים Ẽ ברכיבים: Re = V + XI·sinφ, Im = XI·cosφ.</p>
+<p><b>שלבים:</b></p><ol><li>V<sub>ph</sub> = V<sub>L</sub>/√3 (כוכב).</li><li>I = P/(√3V<sub>L</sub>cosφ).</li><li>Ĩ = I∠−φ (השראי) או ∠+φ (קיבולי).</li><li>מחשבים Ẽ ברכיבים: Re = V + XI·sinφ, Im = XI·cosφ.</li></ol>
 <p><b>עירור:</b> עירור יתר (E גדול) ⇒ המכונה מספקת הספק היגבי (כמו קבל). עירור חסר ⇒ צורכת.</p>
 <p>δ<sub>max</sub> = 90° – מעבר לזה המכונה יוצאת מסינכרון.</p>`,
   graph(box) {
@@ -808,7 +825,7 @@ const STRATEGY = {
 // Wrap every run of Latin/math inside Hebrew text in <bdi dir=ltr>, so formulas keep their order in RTL lines.
 const HEB = /[א-ת]/;
 function isolateMath(root) {
-  root.querySelectorAll('p, li, td, th, h1, h3, .readout, .q, .topic span').forEach(el => { if (!el.closest('.f, svg, bdi')) fixEl(el); });
+  root.querySelectorAll('p, li, td, th, h1, h3, .readout, .q, .topic span, .choice span, .sliders span, .part label').forEach(el => { if (!el.closest('.f, svg, bdi')) fixEl(el); });
   if (root.matches?.('.readout')) fixEl(root);
 }
 function fixEl(el) {
@@ -818,7 +835,11 @@ function fixEl(el) {
     else if (n.nodeType === 1 && !HEB.test(n.textContent) && !n.matches('.f, br, svg, button, input, ol, ul, table')) toks.push({ heb: false, node: n });
     else { if (n.nodeType === 1 && !n.matches('.f, svg, bdi')) fixEl(n); toks.push({ heb: true, node: n }); }
   });
-  if (!toks.some(t => !t.heb) || !toks.some(t => t.heb)) return;
+  if (!toks.some(t => !t.heb)) return;
+  if (!toks.some(t => t.heb)) {   // no Hebrew at all: the whole element is one formula chip
+    if (!/[A-Za-z0-9φγαβηδθλμεωΩÅ√]/.test(el.textContent) || el.matches('.f, bdi, button')) return;
+    const b = document.createElement('bdi'); b.dir = 'ltr'; b.append(...el.childNodes); el.append(b); return;
+  }
   const frag = document.createDocumentFragment(); let run = [];
   const flush = () => {
     if (!run.length) return;
@@ -830,7 +851,7 @@ function fixEl(el) {
       while (run.length && run[0].node.nodeType === 3) {
         const t = run[0].node.textContent, c = t[0];
         if (t === '') { lead += ''; run.shift(); continue; }
-        const move = /[\s:;,.]/.test(c) || (/[-–]/.test(c) && lead === '' && /^[-–][A-Za-z0-9]/.test(t)) || (c === '(' && bal() > 0) || (c === ')' && bal() < 0);
+        const move = /[\s:;,.]/.test(c) || (/[-–]/.test(c) && lead === '' && /^[-–][A-Za-z0-9√φγαβηδθλμεωΩÅ(|]/.test(t)) || (c === '(' && bal() > 0) || (c === ')' && bal() < 0);
         if (!move) break; lead += c; run[0].node.textContent = t.slice(1);
       }
       while (run.length && run.at(-1).node.nodeType === 3) {
@@ -850,11 +871,338 @@ function fixEl(el) {
   el.replaceChildren(frag);
 }
 
+// אותות אקראיים: generators (multiple choice), lessons, narrated video scenes.
+// mc(correct, wrongs) → 4 shuffled choices built from typical mistakes.
+function mc(correct, wrongs, f = v => fmt(v)) {
+  const seen = new Set([f(correct)]), out = [];
+  for (const w of wrongs) { const s = f(w); if (isFinite(w) && !seen.has(s)) { seen.add(s); out.push(w); } if (out.length === 3) break; }
+  for (let k = 2; out.length < 3; k++) { const w = correct * (k % 2 ? k : 1 / k); if (!seen.has(f(w))) { seen.add(f(w)); out.push(w); } }
+  const all = shuffleArr([[correct, true], ...out.map(w => [w, false])]);
+  return { choices: all.map(x => f(x[0])), answer: all.findIndex(x => x[1]) };
+}
+function mcText(correct, wrongs) {
+  const all = shuffleArr([[correct, true], ...wrongs.slice(0, 3).map(w => [w, false])]);
+  return { choices: all.map(x => x[0]), answer: all.findIndex(x => x[1]) };
+}
+const shuffleArr = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+
+const signals = {
+  name: 'אותות אקראיים', code: '50074', minutes: 180, mc: true,
+  groups: { rv: 'משתנה אקראי', pair: 'שני משתנים ושערוך', proc: 'תהליכים אקראיים' },
+  topics: {
+    cdfPdf: { group: 'rv', title: 'PDF ו-CDF: הסתברות, תוחלת, שונות', gen(o = {}) {
+      const kind = o.kind ?? pick(['uni', 'exp']);
+      if (kind === 'uni') {
+        const a = o.a ?? pick([0, 1, 2, -1]), b = o.b ?? a + pick([2, 4, 5, 6]);
+        const ask = o.ask ?? pick(['P', 'E', 'V']);
+        if (ask === 'P') { const c = a + (b - a) * 0.25, d = b; const p = (d - c) / (b - a);
+          return { text: `X ~ U(${a}, ${b}). מה P(${fmt(c)} < X < ${d})?`, ...mc(p, [(d - c), 1 - p, (d - c) / b]), sol: `באחיד: f<sub>X</sub> = 1/(b−a) = 1/${b - a} בקטע.<br>P = (אורך הקטע)/(b−a) = ${fmt(d - c)}/${b - a} = <b>${fmt(p)}</b>` }; }
+        if (ask === 'E') { const m = (a + b) / 2; return { text: `X ~ U(${a}, ${b}). מה E[X]?`, ...mc(m, [(b - a) / 2, b / 2, (b - a) ** 2 / 12]), sol: `E[X] = (a+b)/2 = <b>${fmt(m)}</b> – אמצע הקטע.` }; }
+        const v = (b - a) ** 2 / 12; return { text: `X ~ U(${a}, ${b}). מה Var[X]?`, ...mc(v, [(b - a) / 12, (b - a) ** 2 / 4, (b * b - a * a) / 12]), sol: `Var[X] = (b−a)²/12 = ${(b - a) ** 2}/12 = <b>${fmt(v)}</b>` };
+      }
+      const l = o.l ?? pick([0.5, 1, 2, 3, 4]), ask = o.ask ?? pick(['P', 'F', 'V']), x0 = o.x0 ?? pick([0.5, 1, 2]);
+      if (ask === 'P') { const p = Math.exp(-l * x0); return { text: `X ~ Exp(λ=${l}). מה P(X > ${x0})?`, ...mc(p, [1 - p, l * Math.exp(-l * x0), Math.exp(-x0 / l)]), sol: `F<sub>X</sub>(x) = 1 − e<sup>−λx</sup> ⇒ P(X>x) = e<sup>−λx</sup> = e<sup>−${fmt(l * x0)}</sup> = <b>${fmt(p)}</b>` }; }
+      if (ask === 'F') { const p = 1 - Math.exp(-l * x0); return { text: `X ~ Exp(λ=${l}). מה F<sub>X</sub>(${x0})?`, ...mc(p, [Math.exp(-l * x0), l * Math.exp(-l * x0), 1 - Math.exp(-x0 / l)]), sol: `F<sub>X</sub>(x) = ∫<sub>0</sub><sup>x</sup> λe<sup>−λt</sup>dt = 1 − e<sup>−λx</sup> = <b>${fmt(p)}</b><br>שימו לב: λe<sup>−λx</sup> זו ה-PDF, לא ה-CDF.` }; }
+      const v = 1 / l ** 2; return { text: `X ~ Exp(λ=${l}). מה Var[X]?`, ...mc(v, [1 / l, 2 / l ** 2, l ** 2]), sol: `E[X] = 1/λ, E[X²] = 2/λ²<br>Var = E[X²] − E²[X] = 2/λ² − 1/λ² = 1/λ² = <b>${fmt(v)}</b>` };
+    } },
+    charFn: { group: 'rv', title: 'פונקציה אופיינית ומומנטים', gen(o = {}) {
+      if ((o.kind ?? pick(['exp', 'gauss'])) === 'exp') {
+        const l = o.l ?? pick([0.5, 1, 2, 4]), m2 = 2 / l ** 2;
+        return { text: `לא"מ X פונקציה אופיינית Φ<sub>X</sub>(ω) = ${l}/(${l} − jω). מה E[X²]?`, ...mc(m2, [1 / l ** 2, -2 / l ** 2, 1 / l]),
+          sol: `E[X<sup>n</sup>] = (−j)<sup>n</sup>·Φ<sup>(n)</sup>(0)<br>Φ″(ω) = 2j²λ/(λ−jω)³ = −2λ/(λ−jω)³ ⇒ Φ″(0) = −2/λ²<br>E[X²] = (−j)²·(−2/λ²) = <b>${fmt(m2)}</b> (זו Exp(λ): E[X²]=2/λ²)` };
+      }
+      const mu = o.mu ?? pick([0, 1, 2, -1, 3]), s2 = o.s2 ?? pick([1, 2, 4, 9]), m2 = s2 + mu * mu;
+      return { text: `Φ<sub>X</sub>(ω) = e<sup>j${mu}ω − ${s2 / 2}ω²</sup>. מה E[X²]?`, ...mc(m2, [s2, s2 / 2 + mu * mu, mu * mu]),
+        sol: `זו הצורה של גאוסי: Φ = e<sup>jμω − σ²ω²/2</sup> ⇒ μ = ${mu}, σ² = ${s2}<br>E[X²] = Var + E²[X] = ${s2} + ${mu * mu} = <b>${fmt(m2)}</b>` };
+    } },
+    linear: { group: 'rv', title: 'טרנספורמציה לינארית Y = aX + b', gen(o = {}) {
+      const m = o.m ?? pick([0, 1, 2, -3, 5]), v = o.v ?? pick([1, 2, 4, 9]), a = o.a ?? pick([-3, -2, 2, 3, 0.5]), b = o.b ?? pick([1, -4, 5, 10]);
+      if ((o.ask ?? pick(['E', 'V'])) === 'E') { const e = a * m + b; return { text: `E[X] = ${m}, Var[X] = ${v}. Y = ${a}X + ${b}. מה E[Y]?`, ...mc(e, [a * m, a * m - b, m + b]), sol: `E[Y] = aE[X] + b = ${a}·${m} + ${b} = <b>${fmt(e)}</b>` }; }
+      const vy = a * a * v; return { text: `E[X] = ${m}, Var[X] = ${v}. Y = ${a}X + ${b}. מה Var[Y]?`, ...mc(vy, [a * v, a * a * v + b, a * v + b]), sol: `Var[Y] = a²Var[X] = ${a * a}·${v} = <b>${fmt(vy)}</b><br>הקבוע b רק מזיז – לא משנה את הפיזור. a נכנס בריבוע (גם כשהוא שלילי).` };
+    } },
+    covCorr: { group: 'pair', title: 'קווריאנס, מקדם קורלציה ו-Var(X±Y)', gen(o = {}) {
+      const mx = o.mx ?? pick([0, 1, 2, -1]), my = o.my ?? pick([0, 1, 3, -2]), vx = o.vx ?? pick([1, 4, 9]), vy = o.vy ?? pick([1, 4, 16]);
+      const r = o.r ?? pick([-0.5, -0.25, 0.25, 0.5, 0.75]), cov = r * Math.sqrt(vx * vy), exy = cov + mx * my;
+      const ask = o.ask ?? pick(['cov', 'rho', 'sum']);
+      const given = `E[X]=${mx}, E[Y]=${my}, Var[X]=${vx}, Var[Y]=${vy}, E[XY]=${fmt(exy)}.`;
+      if (ask === 'cov') return { text: `${given} מה Cov(X,Y)?`, ...mc(cov, [exy, exy + mx * my, cov / Math.sqrt(vx * vy)]), sol: `Cov = E[XY] − E[X]E[Y] = ${fmt(exy)} − ${mx * my} = <b>${fmt(cov)}</b>` };
+      if (ask === 'rho') return { text: `${given} מה מקדם הקורלציה ρ<sub>XY</sub>?`, ...mc(r, [cov / (vx * vy), exy / Math.sqrt(vx * vy), cov]), sol: `Cov = ${fmt(cov)}<br>ρ = Cov/√(Var[X]Var[Y]) = ${fmt(cov)}/${fmt(Math.sqrt(vx * vy))} = <b>${fmt(r)}</b> (תמיד בין −1 ל-1)` };
+      const s = vx + vy + 2 * cov; return { text: `${given} מה Var[X+Y]?`, ...mc(s, [vx + vy, vx + vy - 2 * cov, vx + vy + cov]), sol: `Cov = ${fmt(cov)}<br>Var[X+Y] = Var[X] + Var[Y] + 2Cov = ${vx} + ${vy} + ${fmt(2 * cov)} = <b>${fmt(s)}</b><br>רק כשהם בלתי מתואמים אפשר פשוט לחבר שונויות.` };
+    } },
+    indep: { group: 'pair', title: 'בלתי תלויים / בלתי מתואמים / אורתוגונליים', gen(o = {}) {
+      const bank = [
+        ['X, Y בלתי תלויים. מה בהכרח נכון?', 'Cov(X,Y) = 0', ['X, Y אורתוגונליים', 'ρ = 1', 'f<sub>XY</sub> = f<sub>X</sub> + f<sub>Y</sub>'], 'אי-תלות ⇒ E[XY] = E[X]E[Y] ⇒ Cov = 0. אורתוגונליות (E[XY]=0) רק אם לפחות אחת מהתוחלות אפס.'],
+        ['Cov(X,Y) = 0. מה ניתן לומר?', 'X, Y בלתי מתואמים, אבל לא בהכרח בלתי תלויים', ['X, Y בלתי תלויים', 'X, Y אורתוגונליים', 'E[XY] = 0'], 'בלתי מתואמים לא גורר בלתי תלויים. דוגמה: Z = W·X כש-W = ±1 – Cov(X,Z) = 0 אבל |Z| = |X|.'],
+        ['X, Y גאוסיים במשותף ו-Cov(X,Y) = 0. מה נכון?', 'X, Y בלתי תלויים', ['X, Y רק בלתי מתואמים', 'X+Y אינו גאוסי', 'ρ = 1'], 'בגאוסי משותף – וזה המקרה היחיד בקורס – בלתי מתואמים ⇔ בלתי תלויים.'],
+        ['E[X] = 0 ו-X, Y בלתי מתואמים. מה נכון?', 'X, Y גם אורתוגונליים', ['X, Y בלתי תלויים', 'Var[X+Y] = 0', 'ρ = −1'], 'E[XY] = Cov + E[X]E[Y] = 0 + 0 ⇒ אורתוגונליים.'],
+        ['מה Cov(X, X)?', 'Var[X]', ['0', '1', 'E[X²]'], 'Cov(X,X) = E[X²] − E²[X] = Var[X], ולכן ρ<sub>XX</sub> = 1.'],
+        ['Y = −3X + 2. מה ρ<sub>XY</sub>?', '−1', ['−3', '1', '0'], 'קשר לינארי מדויק ⇒ |ρ| = 1. הסימן לפי השיפוע: a < 0 ⇒ ρ = −1.'],
+        ['W = ±1 בהסתברות ½, בלתי תלוי ב-X ~ N(1,1). Z = W·X. מה נכון?', 'X, Z בלתי מתואמים אבל תלויים', ['X, Z בלתי תלויים', 'ρ<sub>XZ</sub> = 1', 'Cov(X,Z) = 1'], 'Cov(X,Z) = E[W]E[X²] − E[X]E[W]E[X] = 0 כי E[W]=0. אבל |Z| = |X| – תלויים. (מבחן תשפ"ג)'],
+      ];
+      const [q, c, w, ex] = bank[o.i ?? Math.floor(Math.random() * bank.length)];
+      return { text: q, ...mcText(c, w), sol: ex };
+    } },
+    lmmse: { group: 'pair', title: 'משערך לינארי אופטימלי (LMMSE)', gen(o = {}) {
+      const mx = o.mx ?? pick([0, 1, 2]), my = o.my ?? pick([0, 1, 3]), vx = o.vx ?? pick([1, 4, 9]), vy = o.vy ?? pick([1, 2, 4]), r = o.r ?? pick([0.5, 0.6, 0.8, -0.5]);
+      const cov = r * Math.sqrt(vx * vy), a = cov / vy, mse = vx * (1 - r * r);
+      if ((o.ask ?? pick(['a', 'mse'])) === 'a') return { text: `E[X]=${mx}, E[Y]=${my}, Var[X]=${vx}, Var[Y]=${vy}, Cov(X,Y)=${fmt(cov)}. המשערך X̂ = a(Y − E[Y]) + E[X]. מה a?`, ...mc(a, [cov / vx, r, cov]), sol: `a = Cov(X,Y)/Var[Y] = ${fmt(cov)}/${vy} = <b>${fmt(a)}</b><br>מחלקים בשונות של מה ש<b>נמדד</b> (Y), לא של מה שמשערכים.` };
+      return { text: `Var[X]=${vx}, ρ<sub>XY</sub>=${r}. מה השגיאה הריבועית הממוצעת של המשערך הלינארי האופטימלי של X בהינתן Y?`, ...mc(mse, [vx * (1 - Math.abs(r)), vx * r * r, vx]), sol: `E[e²] = Var[X](1 − ρ²) = ${vx}·(1 − ${fmt(r * r)}) = <b>${fmt(mse)}</b><br>ρ = ±1 ⇒ שגיאה 0 · ρ = 0 ⇒ Y לא עוזר, השגיאה = Var[X].` };
+    } },
+    acValid: { group: 'proc', title: 'מי יכולה להיות פונקציית אוטוקורלציה?', gen(o = {}) {
+      const ok = ['e<sup>−2|τ|</sup>', 'cos(ω<sub>0</sub>τ)', '1/(1+τ²)', 'sin(τ)/τ', 'e<sup>−τ²</sup>', '5cos(ω<sub>0</sub>τ) + 3'];
+      const bad = [['U(τ)cos(ω<sub>0</sub>τ)', 'לא זוגית'], ['rect(τ)', 'ה-PSD שלה sinc – שלילי בחלק מהתדרים'], ['τ²e<sup>−|τ|</sup>', 'R(0) = 0 קטן מערכים אחרים'], ['sin(ω<sub>0</sub>τ)', 'אי-זוגית'], ['e<sup>−|τ|</sup> − 2', 'R(0) = −1 < 0 – הספק שלילי']];
+      if ((o.mode ?? pick(['pickOk', 'pickBad'])) === 'pickOk') {
+        const c = pick(ok), w = shuffleArr(bad).slice(0, 3);
+        return { text: 'איזו מהפונקציות יכולה להיות פונקציית אוטוקורלציה של תהליך WSS?', ...mcText(c, w.map(x => x[0])), sol: `<b>${c}</b> – זוגית, מקסימלית ב-τ=0, וה-PSD שלה (התמרת פורייה) אי-שלילי.<br>${w.map(x => `${x[0]}: ${x[1]}`).join('<br>')}` };
+      }
+      const b = pick(bad), w = shuffleArr(ok).slice(0, 3);
+      return { text: 'איזו מהפונקציות <u>אינה</u> יכולה להיות פונקציית אוטוקורלציה של תהליך WSS?', ...mcText(b[0], w), sol: `<b>${b[0]}</b> – ${b[1]}.<br>תנאים: R(τ) = R(−τ), |R(τ)| ≤ R(0), S(ω) ≥ 0 לכל ω.` };
+    } },
+    lti: { group: 'proc', title: 'מעבר תהליך WSS דרך מערכת LTI', gen(o = {}) {
+      const kind = o.kind ?? pick(['mean', 'band', 'rc']);
+      if (kind === 'mean') { const mu = o.mu ?? pick([1, 2, 3]), k = o.k ?? pick([0.5, 0.25, 2]); const m = mu * (1 + k);
+        return { text: `X(t) WSS עם תוחלת ${mu} עובר במערכת h(t) = δ(t) + ${k}δ(t − t<sub>0</sub>). מה תוחלת המוצא?`, ...mc(m, [mu, mu * k, mu * (1 + k) ** 2]), sol: `μ<sub>Y</sub> = μ<sub>X</sub>·H(0), H(ω) = 1 + ${k}e<sup>−jωt₀</sup> ⇒ H(0) = ${1 + k}<br>μ<sub>Y</sub> = <b>${fmt(m)}</b>` }; }
+      if (kind === 'band') { const S0 = o.S0 ?? pick([1, 2, 5]), W = o.W ?? pick([10, 100, 1000]), g = o.g ?? pick([1, 2, 3]); const P = S0 * g * g * 2 * W / (2 * Math.PI);
+        return { text: `S<sub>X</sub>(ω) = ${S0} עבור |ω| ≤ ${W} rad/s (אחרת 0). התהליך עובר בהגבר קבוע H = ${g}. מה ההספק הממוצע במוצא E[Y²]?`, ...mc(P, [S0 * g * 2 * W / (2 * Math.PI), S0 * g * g * 2 * W, S0 * g * g * W / (2 * Math.PI)]), sol: `S<sub>Y</sub> = |H|²S<sub>X</sub> = ${g * g * S0} בפס<br>E[Y²] = (1/2π)∫S<sub>Y</sub>dω = ${g * g * S0}·${2 * W}/(2π) = <b>${fmt(P)}</b>` }; }
+      const N0 = o.N0 ?? pick([2, 4, 1e-3]), RC = o.RC ?? pick([1e-3, 0.01, 0.5]); const P = N0 / (4 * RC);
+      return { text: `רעש לבן עם S<sub>N</sub>(ω) = N<sub>0</sub>/2, N<sub>0</sub> = ${fmt(N0)}, עובר במסנן RC: H(ω) = 1/(1 + jωRC), RC = ${fmt(RC)}. מה הספק המוצא?`, ...mc(P, [N0 / (2 * RC), N0 / RC, N0 / (4 * Math.PI * RC)]), sol: `|H|² = 1/(1+(ωRC)²)<br>E[Y²] = (1/2π)∫(N<sub>0</sub>/2)/(1+(ωRC)²)dω = (N<sub>0</sub>/2)·(1/2π)·(π/RC) = N<sub>0</sub>/(4RC) = <b>${fmt(P)}</b>` };
+    } },
+  },
+  sheet: `<h3>משתנה אקראי</h3><p>F(x)=P(X≤x) · f=dF/dx · E[X]=∫xf(x)dx · Var=E[X²]−E²[X]<br>אחיד U(a,b): E=(a+b)/2, Var=(b−a)²/12 · מעריכי Exp(λ): F=1−e<sup>−λx</sup>, E=1/λ, Var=1/λ²<br>גאוסי: Φ(ω)=e<sup>jμω−σ²ω²/2</sup> · Y=aX+b: E[Y]=aE[X]+b, Var[Y]=a²Var[X]</p>
+<h3>פונקציות יוצרות</h3><p>Φ<sub>X</sub>(ω)=E[e<sup>jωX</sup>] · E[X<sup>n</sup>]=(−j)<sup>n</sup>Φ<sup>(n)</sup>(0) · M<sub>X</sub>(v)=E[e<sup>vX</sup>], E[X<sup>n</sup>]=M<sup>(n)</sup>(0)</p>
+<h3>שני משתנים</h3><p>Cov=E[XY]−E[X]E[Y] · ρ=Cov/(σ<sub>X</sub>σ<sub>Y</sub>) · Var[X±Y]=Var[X]+Var[Y]±2Cov<br>X̂<sub>LMMSE</sub>=E[X]+Cov(X,Y)/Var[Y]·(Y−E[Y]) · E[e²]=Var[X](1−ρ²) · עקרון הניצבות: E[e·Y]=0</p>
+<h3>תהליכים</h3><p>WSS: μ קבוע, R<sub>X</sub>(t,t+τ)=R<sub>X</sub>(τ) · S<sub>X</sub>(ω)=∫R<sub>X</sub>(τ)e<sup>−jωτ</sup>dτ · E[X²]=R(0)=(1/2π)∫S(ω)dω<br>LTI: μ<sub>Y</sub>=μ<sub>X</sub>H(0) · S<sub>Y</sub>=S<sub>X</sub>|H|² · S<sub>XY</sub>=S<sub>X</sub>H · וינר: H=S<sub>XY</sub>/S<sub>Y</sub> = S<sub>X</sub>/(S<sub>X</sub>+S<sub>N</sub>)</p>`,
+};
+COURSES.signals = signals;
+
+// ---------- lessons ----------
+const gauss = (m, s) => x => Math.exp(-((x - m) ** 2) / (2 * s * s)) / (s * Math.sqrt(2 * Math.PI));
+const scatter = (P, r, n = 140) => { let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < n; i++) { const u = Math.sqrt(-2 * Math.log(rnd())) * Math.cos(2 * Math.PI * rnd()), v = Math.sqrt(-2 * Math.log(rnd())) * Math.cos(2 * Math.PI * rnd());
+    P.el('circle', { cx: P.X(u), cy: P.Y(r * u + Math.sqrt(1 - r * r) * v), r: 2.2, class: 'pt c2' }); } };
+const Lg = LESSONS.signals = {};
+
+Lg.cdfPdf = {
+  intro: 'ה-CDF אומרת "מה הסיכוי שהתוצאה קטנה מ-x". ה-PDF היא הנגזרת שלה – "כמה הסתברות יש סביב כל נקודה". שטח מתחת ל-PDF = הסתברות.',
+  body: `<p class="f">F<sub>X</sub>(x) = P(X ≤ x) · f<sub>X</sub>(x) = dF<sub>X</sub>/dx · P(a < X < b) = ∫<sub>a</sub><sup>b</sup> f<sub>X</sub>dx = F(b) − F(a)</p>
+<ul><li>F עולה מ-0 ל-1 ולא יורדת לעולם. f ≥ 0 והשטח הכולל שלה = 1.</li>
+<li><b>תוחלת</b> – "מרכז הכובד": E[X] = ∫x·f(x)dx. <b>שונות</b> – הפיזור: Var = E[X²] − E²[X].</li></ul>
+<table class="t"><tr><th>התפלגות</th><th>f(x)</th><th>E</th><th>Var</th></tr>
+<tr><td>אחיד U(a,b)</td><td>1/(b−a)</td><td>(a+b)/2</td><td>(b−a)²/12</td></tr>
+<tr><td>מעריכי Exp(λ)</td><td>λe<sup>−λx</sup></td><td>1/λ</td><td>1/λ²</td></tr>
+<tr><td>גאוסי N(μ,σ²)</td><td>פעמון</td><td>μ</td><td>σ²</td></tr></table>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 4], y: [0, 2.1], xl: 'x', yl: 'f, F', xt: [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4']], yt: [[0, '0'], [1, '1'], [2, '2']] });
+    sliders(box, [{ k: 'l', label: 'λ', min: 0.3, max: 2, step: 0.05, v: 1 }, { k: 'x', label: 'x', min: 0, max: 4, step: 0.05, v: 1 }], v => {
+      P.clear(); const f = x => v.l * Math.exp(-v.l * x), F = x => 1 - Math.exp(-v.l * x);
+      P.area(f, 0, v.x, 'c2'); P.fn(f, 'c2'); P.fn(F, 'c1'); P.dot(v.x, F(v.x), 'F(x)', 'c1'); P.vline(1 / v.l, 'E[X]');
+      return `<span class="c2t">━ PDF</span> &nbsp; <span class="c1t">━ CDF</span><br>השטח הצבוע = F(${v.x}) = P(X ≤ ${v.x}) = <b>${F(v.x).toFixed(3)}</b> · E[X] = 1/λ = ${(1 / v.l).toFixed(2)}`;
+    });
+  },
+  video: [
+    { t: 'נתחיל מ-PDF של מעריכי עם λ=1. הגובה הוא לא הסתברות – הוא צפיפות.', d: P => { P.fn(x => Math.exp(-x), 'c2'); } },
+    { t: 'הסתברות = שטח. השטח עד x=1 הוא P(X ≤ 1).', d: P => { P.area(x => Math.exp(-x), 0, 1, 'c2'); P.fn(x => Math.exp(-x), 'c2'); } },
+    { t: 'אם צוברים את השטח מ-0 עד כל x, מקבלים את ה-CDF: F(x) = 1 − e<sup>−x</sup>.', d: P => { P.fn(x => Math.exp(-x), 'c2'); P.fn(x => 1 - Math.exp(-x), 'c1'); P.dot(1, 1 - Math.exp(-1), 'F(1)=0.632', 'c1'); } },
+    { t: 'ה-CDF תמיד עולה ושואפת ל-1, כי ההסתברות הכוללת היא 1.', d: P => { P.fn(x => 1 - Math.exp(-x), 'c1'); P.hline(1, '1'); } },
+    { t: 'מלכודת: P(X > x) = 1 − F(x) = e<sup>−λx</sup>. ו-λe<sup>−λx</sup> זו ה-PDF, לא הסתברות.', d: P => { P.area(x => Math.exp(-x), 1, 4, 'c1'); P.fn(x => Math.exp(-x), 'c2'); P.vline(1, 'x=1'); } },
+  ],
+  vplot: { x: [0, 4], y: [0, 1.1], xl: 'x', yl: '', xt: [[0, '0'], [1, '1'], [2, '2'], [3, '3']], yt: [[0, '0'], [1, '1']] },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { kind: 'exp', l: 2, ask: 'P', x0: 1 } },
+  traps: ['לבלבל בין P(X > x) ל-F(x).', 'שונות של אחיד: (b−a)²/12 – לא (b−a)/12.', 'ב-Exp: Var = 1/λ² (לא 1/λ).'],
+  exam: 'הבסיס לכל שאלה בקורס. לרוב מופיע כחלק משאלה גדולה.',
+};
+Lg.charFn = {
+  intro: 'הפונקציה האופיינית היא "התמרת פורייה" של ה-PDF. היתרון: גוזרים אותה ב-0 ומקבלים מומנטים בלי אינטגרלים.',
+  body: `<p class="f">Φ<sub>X</sub>(ω) = E[e<sup>jωX</sup>] · E[X<sup>n</sup>] = (−j)<sup>n</sup>·Φ<sup>(n)</sup>(0) · Φ(0) = 1</p>
+<p><b>פונקציה יוצרת מומנטים</b> – אותו רעיון בלי j: <span class="f">M<sub>X</sub>(v) = E[e<sup>vX</sup>] · E[X<sup>n</sup>] = M<sup>(n)</sup>(0)</span></p>
+<p><b>שיטה:</b> גוזרים פעם אחת ⇒ E[X]. פעמיים ⇒ E[X²]. ואז Var = E[X²] − E²[X].</p>
+<p><b>זיהוי מהיר:</b> Φ = e<sup>jμω − σ²ω²/2</sup> ⇒ גאוסי N(μ,σ²). Φ = λ/(λ − jω) ⇒ מעריכי.</p>
+<p><b>לסכום של בלתי תלויים:</b> Φ<sub>X+Y</sub> = Φ<sub>X</sub>·Φ<sub>Y</sub> – כפל במקום קונבולוציה.</p>`,
+  graph: null,
+  video: [
+    { t: 'יש לנו Φ(ω) = e<sup>j2ω − 2ω²</sup>. במקום לגזור – נזהה צורה.', d: P => { P.fn(gauss(2, 1.414), 'c2'); } },
+    { t: 'זו הצורה של גאוסי: e<sup>jμω − σ²ω²/2</sup>. לכן μ = 2, ו-σ²/2 = 2 ⇒ σ² = 4.', d: P => { P.fn(gauss(2, 2), 'c2'); P.vline(2, 'μ=2'); } },
+    { t: 'E[X²] = Var + E²[X] = 4 + 4 = 8.', d: P => { P.fn(gauss(2, 2), 'c2'); P.vline(2, 'μ'); P.vline(4, 'μ+σ'); P.vline(0, 'μ−σ'); } },
+    { t: 'כשאין צורה מוכרת: גוזרים. E[X] = −j·Φ′(0). E[X²] = −Φ″(0). מקור הסימנים: (−j)<sup>n</sup>.', d: P => { P.fn(gauss(2, 2), 'c3'); } },
+  ],
+  vplot: { x: [-4, 8], y: [0, 0.32], xl: 'x', yl: 'f', xt: [[-4, '-4'], [0, '0'], [4, '4'], [8, '8']] },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { kind: 'exp', l: 2 } },
+  traps: ['לשכוח את (−j)<sup>n</sup> ולקבל E[X²] שלילי.', 'E[X²] ≠ Var. צריך להוסיף E²[X].', 'בפונקציה יוצרת מומנטים אין j – לא מכפילים ב-(−j)<sup>n</sup>.'],
+  exam: 'מופיע בדף הנוסחאות – וכסעיף קצר בשאלה 1.',
+};
+Lg.linear = {
+  intro: 'Y = aX + b: הכפלה ב-a מותחת את ההתפלגות (והופכת אם a<0), והוספת b מזיזה אותה.',
+  body: `<p class="f">E[Y] = aE[X] + b · Var[Y] = a²Var[X] · σ<sub>Y</sub> = |a|σ<sub>X</sub> · f<sub>Y</sub>(y) = (1/|a|)·f<sub>X</sub>((y−b)/a)</p>
+<p><b>אינטואיציה:</b> הזזה לא משנה כמה רחב הפעמון – לכן b לא מופיע בשונות. מתיחה פי a מגדילה מרחקים פי |a| ⇒ שונות פי a².</p>
+<p>גאוסי נשאר גאוסי תחת טרנספורמציה לינארית. בווקטור: <span class="f">Y = AX ⇒ μ<sub>Y</sub> = Aμ<sub>X</sub>, C<sub>Y</sub> = A·C<sub>X</sub>·A<sup>T</sup></span> (מבחן תשפ"ג).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-10, 14], y: [0, 0.42], xl: 'x, y', yl: 'f', xt: [[-10, '-10'], [0, '0'], [10, '10']] });
+    sliders(box, [{ k: 'a', label: 'a', min: -3, max: 3, step: 0.1, v: 2 }, { k: 'b', label: 'b', min: -5, max: 5, step: 0.5, v: 3 }], v => {
+      P.clear(); P.fn(gauss(1, 1), 'c3'); const s = Math.max(0.2, Math.abs(v.a)); P.fn(gauss(v.a * 1 + v.b, s), 'c1');
+      return `X ~ N(1, 1) <span class="c1t">→ Y ~ N(${(v.a + v.b).toFixed(1)}, ${(v.a * v.a).toFixed(2)})</span><br>E[Y] = a·1 + b · Var[Y] = a²·1 – b לא משנה את הרוחב`;
+    });
+  },
+  video: [
+    { t: 'X ~ N(1,1). נבדוק מה עושה Y = 2X + 3.', d: P => P.fn(gauss(1, 1), 'c3') },
+    { t: 'כפל ב-2: המרכז זז ל-2, והפעמון מתרחב פי 2 ⇒ שונות פי 4.', d: P => { P.fn(gauss(1, 1), 'c3'); P.fn(gauss(2, 2), 'c2'); } },
+    { t: 'הוספת 3: רק הזזה. E[Y] = 2·1 + 3 = 5, Var[Y] = 4·1 = 4.', d: P => { P.fn(gauss(1, 1), 'c3'); P.fn(gauss(5, 2), 'c1'); P.vline(5, 'E[Y]=5'); } },
+    { t: 'גם עם a = −2 השונות היא 4 – a נכנס בריבוע.', d: P => { P.fn(gauss(1, 1), 'c3'); P.fn(gauss(1, 2), 'c1'); } },
+  ],
+  vplot: { x: [-6, 12], y: [0, 0.42], xl: 'x', yl: 'f', xt: [[-5, '-5'], [0, '0'], [5, '5'], [10, '10']] },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { m: 2, v: 4, a: -3, b: 5, ask: 'V' } },
+  traps: ['Var[Y] = aVar[X] – שוכחים לרבע.', 'להוסיף b לשונות.', 'ב-PDF שוכחים את הגורם 1/|a|.'],
+  exam: 'כמעט תמיד כצעד בתוך שאלה (וקטור גאוסי, תהליך Y=X(t)−X(t+T)).',
+};
+Lg.covCorr = {
+  intro: 'קווריאנס מודדת אם שני משתנים "זזים יחד". מקדם הקורלציה ρ הוא אותו דבר אחרי נרמול – תמיד בין −1 ל-1.',
+  body: `<p class="f">Cov(X,Y) = E[(X−μ<sub>X</sub>)(Y−μ<sub>Y</sub>)] = E[XY] − E[X]E[Y] · ρ = Cov/(σ<sub>X</sub>σ<sub>Y</sub>)</p>
+<ul><li>ρ = 1: קו ישר עולה מדויק. ρ = −1: קו יורד. ρ = 0: אין קשר <b>לינארי</b>.</li>
+<li>Cov(X,X) = Var[X] ⇒ ρ<sub>XX</sub> = 1.</li>
+<li>Cov(aX+b, cY+d) = ac·Cov(X,Y) – קבועים נעלמים, מקדמים יוצאים.</li></ul>
+<p class="f">Var[X ± Y] = Var[X] + Var[Y] ± 2Cov(X,Y)</p>
+<p><b>שימו לב:</b> E[XY] נקרא בקורס "קורלציה" R<sub>XY</sub> – זה לא ρ.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-3, 3], y: [-3, 3], xl: 'X', yl: 'Y', xt: [[-2, '-2'], [0, '0'], [2, '2']], yt: [[-2, '-2'], [0, '0'], [2, '2']] });
+    sliders(box, [{ k: 'r', label: 'ρ', min: -1, max: 1, step: 0.05, v: 0.6 }], v => {
+      P.clear(); scatter(P, v.r); if (Math.abs(v.r) > 0.01) P.fn(x => v.r * x, 'c1');
+      return `ρ = ${v.r} · ${Math.abs(v.r) > 0.9 ? 'כמעט קו ישר' : Math.abs(v.r) < 0.15 ? 'ענן עגול – אין קשר לינארי' : 'נטייה ' + (v.r > 0 ? 'עולה' : 'יורדת')}<br>הקו הצהוב = המשערך הלינארי האופטימלי של Y לפי X`;
+    });
+  },
+  video: [
+    { t: 'כל נקודה היא דגימה של (X,Y). כאן ρ = 0 – ענן עגול.', d: P => scatter(P, 0) },
+    { t: 'ρ = 0.7: כשהם מעל הממוצע – בדרך כלל ביחד. Cov חיובית.', d: P => { scatter(P, 0.7); P.fn(x => 0.7 * x, 'c1'); } },
+    { t: 'ρ = −0.7: כשאחד עולה – השני יורד. Cov שלילית.', d: P => { scatter(P, -0.7); P.fn(x => -0.7 * x, 'c1'); } },
+    { t: 'ρ = 1: קו ישר מדויק. זה מה שקורה עם Cov(X,X) = Var[X].', d: P => { scatter(P, 0.999); P.fn(x => x, 'c1'); } },
+    { t: 'חישוב במבחן: קודם Cov = E[XY] − E[X]E[Y], ואז מחלקים ב-σ<sub>X</sub>σ<sub>Y</sub>.', d: P => { scatter(P, 0.5); } },
+  ],
+  vplot: { x: [-3, 3], y: [-3, 3], xl: 'X', yl: 'Y' },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { mx: 1, my: 2, vx: 4, vy: 9, r: 0.5, ask: 'sum' } },
+  traps: ['להציב E[XY] כאילו זה Cov – שוכחים להחסיר E[X]E[Y].', 'ρ מחלקים ב-√(Var·Var), לא ב-Var·Var.', 'Var[X−Y] עם מינוס לפני 2Cov – אבל Var[X]+Var[Y] תמיד בפלוס.'],
+  exam: 'בכל מבחן, לרוב כחלק משערוך לינארי או מטריצת קווריאנס.',
+};
+Lg.indep = {
+  intro: 'שלושה מושגים דומים שהמבחן אוהב לבלבל ביניהם. ההבדל: מה בדיוק שווה לאפס.',
+  body: `<table class="t"><tr><th>מושג</th><th>הגדרה</th></tr>
+<tr><td>בלתי תלויים</td><td>f<sub>XY</sub> = f<sub>X</sub>·f<sub>Y</sub></td></tr>
+<tr><td>בלתי מתואמים</td><td>Cov(X,Y) = 0 ⇔ E[XY] = E[X]E[Y]</td></tr>
+<tr><td>אורתוגונליים</td><td>E[XY] = 0</td></tr></table>
+<p><b>החצים:</b> בלתי תלויים ⇒ בלתי מתואמים. ההפך <b>לא</b> נכון (חוץ מגאוסי משותף).</p>
+<p>בלתי מתואמים + אחת התוחלות 0 ⇒ גם אורתוגונליים.</p>
+<p><b>הדוגמה הקלאסית (תשפ"ג):</b> W = ±1 בהסתברות ½, Z = W·X. Cov(X,Z) = E[W]·E[X²] − … = 0, אבל |Z| = |X| – ברור שהם תלויים.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-3, 3], y: [-3, 3], xl: 'X', yl: 'Z', xt: [[-2, '-2'], [0, '0'], [2, '2']], yt: [[-2, '-2'], [0, '0'], [2, '2']] });
+    sliders(box, [{ k: 'k', label: 'דוגמה', min: 0, max: 2, step: 1, v: 1, f: x => ['בלתי תלויים', 'Z=W·X', 'Z=X²−1'][x] }], v => {
+      P.clear(); let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 160; i++) { const x = Math.sqrt(-2 * Math.log(rnd())) * Math.cos(2 * Math.PI * rnd()), y = Math.sqrt(-2 * Math.log(rnd())) * Math.cos(2 * Math.PI * rnd());
+        const z = v.k === 0 ? y : v.k === 1 ? (rnd() < 0.5 ? x : -x) : x * x - 1; P.el('circle', { cx: P.X(x), cy: P.Y(Math.max(-3, Math.min(3, z))), r: 2.2, class: 'pt c2' }); }
+      return ['Cov = 0 וגם בלתי תלויים: ענן בלי שום מבנה.', 'Cov = 0 – אבל הנקודות על שני קווים: |Z| = |X|. <b>תלויים!</b>', 'Cov(X, X²−1) = E[X³] = 0 – אבל Z נקבע לגמרי מ-X. <b>תלויים!</b>'][v.k];
+    });
+  },
+  video: [
+    { t: 'שני משתנים בלתי תלויים: ידיעת X לא אומרת כלום על Y. ענן בלי מבנה.', d: P => scatter(P, 0) },
+    { t: 'עכשיו Z = W·X, W = ±1. Cov(X,Z) = 0 – אין קו ישר שמתאר את הענן.', d: P => { P.fn(x => x, 'c2'); P.fn(x => -x, 'c2'); } },
+    { t: 'אבל אם יודעים X = 2, אז Z הוא בדיוק 2 או −2. זו תלות! בלתי מתואם ≠ בלתי תלוי.', d: P => { P.fn(x => x, 'c2'); P.fn(x => -x, 'c2'); P.vline(2, 'X=2'); P.dot(2, 2, 'Z=2'); P.dot(2, -2, 'Z=−2'); } },
+    { t: 'יוצא דופן חשוב: בגאוסי משותף, Cov = 0 כן גורר אי-תלות.', d: P => scatter(P, 0) },
+  ],
+  vplot: { x: [-3, 3], y: [-3, 3], xl: 'X', yl: 'Z' },
+  ex: { src: 'מבחן תשפ"ג סמ\' א', inputs: { i: 6 } },
+  traps: ['לכתוב "Cov = 0 ⇒ בלתי תלויים" בלי שהם גאוסיים במשותף.', 'לבלבל אורתוגונלי (E[XY]=0) עם בלתי מתואם (Cov=0).'],
+  exam: 'שאלת "נכון/לא נכון, נמק" שחוזרת כמעט בכל מבחן – גם בתהליכים (רעש לבן: בלתי מתואם ⇏ בלתי תלוי).',
+};
+Lg.lmmse = {
+  intro: 'רוצים לנחש את X לפי מדידה Y, עם קו ישר, כך שהשגיאה הריבועית הממוצעת תהיה מינימלית.',
+  body: `<p class="f">X̂ = E[X] + (Cov(X,Y)/Var[Y])·(Y − E[Y])</p>
+<p class="f">E[e²] = Var[X](1 − ρ²)</p>
+<ul><li>ρ = 0: Y לא עוזר – המשערך הוא פשוט E[X], השגיאה Var[X].</li><li>|ρ| = 1: שערוך מושלם, שגיאה 0.</li></ul>
+<p><b>עקרון הניצבות:</b> השגיאה e = X − X̂ בלתי מתואמת עם המדידה: E[e·Y] = 0. ככה מוכיחים שהמשערך אופטימלי.</p>
+<p><b>המשערך האופטימלי (לא רק לינארי)</b> הוא E[X|Y]. בגאוסי משותף שניהם זהים.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-3, 3], y: [-3, 3], xl: 'Y', yl: 'X', xt: [[-2, '-2'], [0, '0'], [2, '2']], yt: [[-2, '-2'], [0, '0'], [2, '2']] });
+    sliders(box, [{ k: 'r', label: 'ρ', min: -1, max: 1, step: 0.05, v: 0.8 }], v => {
+      P.clear(); scatter(P, v.r); P.fn(y => v.r * y, 'c1'); P.hline(0, 'E[X]', 'c3');
+      return `X̂ = ${v.r}·Y (Var=1, תוחלות 0) · E[e²] = 1 − ρ² = <b>${(1 - v.r * v.r).toFixed(2)}</b><br>ככל ש-|ρ| גדל – הנקודות קרובות יותר לקו והשגיאה קטנה`;
+    });
+  },
+  video: [
+    { t: 'מודדים Y ורוצים לשערך X. כל נקודה היא (Y, X).', d: P => scatter(P, 0.8) },
+    { t: 'בלי מדידה, הניחוש הכי טוב הוא E[X] – קו אופקי. השגיאה = Var[X].', d: P => { scatter(P, 0.8); P.hline(0, 'E[X]', 'c3'); } },
+    { t: 'עם המדידה: קו בשיפוע Cov/Var[Y]. זה המשערך הלינארי האופטימלי.', d: P => { scatter(P, 0.8); P.fn(y => 0.8 * y, 'c1'); } },
+    { t: 'השגיאה שנשארת: Var[X](1 − ρ²) = 1 − 0.64 = 0.36.', d: P => { scatter(P, 0.8); P.fn(y => 0.8 * y, 'c1'); P.fn(y => 0.8 * y + 0.6, 'c3'); P.fn(y => 0.8 * y - 0.6, 'c3'); } },
+    { t: 'עקרון הניצבות: השגיאה X − X̂ בלתי מתואמת עם Y. אם הייתה מתואמת – היה אפשר לשפר את הקו.', d: P => { scatter(P, 0.8); P.fn(y => 0.8 * y, 'c1'); } },
+  ],
+  vplot: { x: [-3, 3], y: [-3, 3], xl: 'Y', yl: 'X' },
+  ex: { src: 'דוגמה בסגנון המבחנים', inputs: { mx: 1, my: 0, vx: 4, vy: 1, r: 0.5, ask: 'a' } },
+  traps: ['לחלק ב-Var[X] במקום ב-Var[Y].', 'לשכוח את E[X] בחלק הקבוע.', 'שגיאה = Var[X](1−ρ²), לא Var[X]·ρ².'],
+  exam: 'כמעט בכל מבחן – גם כוקטור, וגם בגרסת התהליכים (מסנן וינר).',
+};
+Lg.acValid = {
+  intro: 'פונקציית האוטוקורלציה R(τ) של תהליך WSS אומרת כמה התהליך "דומה לעצמו" אחרי הזזה τ. יש לה שלוש תכונות חובה.',
+  body: `<p class="f">R<sub>X</sub>(τ) = E[X(t)X(t+τ)] · R(0) = E[X²] = הספק ממוצע</p>
+<ol><li><b>זוגית:</b> R(τ) = R(−τ).</li><li><b>מקסימום ב-0:</b> |R(τ)| ≤ R(0).</li><li><b>PSD אי-שלילי:</b> S(ω) = F{R(τ)} ≥ 0 לכל ω.</li></ol>
+<p><b>WSS</b> = התוחלת קבועה, ו-R תלוי רק בהפרש τ = t<sub>2</sub> − t<sub>1</sub>.</p>
+<p>דוגמאות שנפסלות: U(τ)cos (לא זוגית), rect(τ) (ה-PSD הוא sinc – שלילי בחלקו), τ²e<sup>−|τ|</sup> (R(0)=0).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-4, 4], y: [-1.2, 1.3], xl: 'τ', yl: 'R(τ)', xt: [[-4, '-4'], [0, '0'], [4, '4']], yt: [[-1, '-1'], [0, '0'], [1, '1']] });
+    const fs = [['e^{-|τ|} ✓', t => Math.exp(-Math.abs(t)), 1], ['cos(2τ) ✓', t => Math.cos(2 * t), 1], ['sin τ/τ ✓', t => t ? Math.sin(2 * t) / (2 * t) : 1, 1], ['U(τ)cos ✗', t => t >= 0 ? Math.cos(2 * t) : 0, 0], ['τ²e^{-|τ|} ✗', t => t * t * Math.exp(-Math.abs(t)), 0], ['rect ✗', t => Math.abs(t) < 1 ? 1 : 0, 0]];
+    sliders(box, [{ k: 'i', label: 'פונקציה', min: 0, max: 5, step: 1, v: 0, f: x => fs[x][0] }], v => {
+      P.clear(); const [n, f, ok] = fs[v.i]; P.fn(f, ok ? 'c1' : 'c2'); P.hline(0, '', 'c4');
+      return ok ? '✓ זוגית, מקסימום ב-0, PSD אי-שלילי' : '✗ ' + ['', '', '', 'לא זוגית – R(−τ) ≠ R(τ)', 'R(0) = 0 קטן מערכים אחרים', 'זוגית ומקסימום ב-0 – אבל ה-PSD (sinc) שלילי בחלק מהתדרים'][v.i];
+    });
+  },
+  video: [
+    { t: 'R(τ) = e<sup>−|τ|</sup>: זוגית, מקסימום ב-0, ודועכת – התהליך "שוכח" את עצמו עם הזמן.', d: P => P.fn(t => Math.exp(-Math.abs(t)), 'c1') },
+    { t: 'cos(ω₀τ) תקינה – תהליך של סינוס עם פאזה אקראית. היא לא דועכת: המחזוריות נשמרת.', d: P => P.fn(t => Math.cos(2 * t), 'c1') },
+    { t: 'U(τ)cos(ω₀τ) נפסלת מיד: היא לא זוגית.', d: P => P.fn(t => t >= 0 ? Math.cos(2 * t) : 0, 'c2') },
+    { t: 'τ²e<sup>−|τ|</sup> נפסלת: R(0) = 0, אבל יש ערכים גדולים יותר. ההספק לא יכול להיות קטן מהקורלציה.', d: P => P.fn(t => t * t * Math.exp(-Math.abs(t)), 'c2') },
+    { t: 'המבחן הקשה: rect(τ) זוגית עם מקסימום ב-0, אבל ההתמרה שלה sinc – שלילית. נפסלת.', d: P => P.fn(t => Math.abs(t) < 1 ? 1 : 0, 'c2') },
+  ],
+  vplot: { x: [-4, 4], y: [-1.2, 1.3], xl: 'τ', yl: 'R(τ)' },
+  ex: { src: 'מבחן תשפ"ג סמ\' א (סעיף ב)', inputs: { mode: 'pickBad' } },
+  traps: ['לבדוק רק זוגיות ומקסימום – ולשכוח את ה-PSD.', 'לפסול cos(ω₀τ) כי "היא לא דועכת" – היא תקינה.'],
+  exam: 'סעיף "בדוק אם יכולה להיות אוטוקורלציה" בכמעט כל מבחן מ-2021.',
+};
+Lg.lti = {
+  intro: 'כשתהליך WSS עובר במערכת LTI, במישור התדר הכול פשוט: ה-PSD מוכפל ב-|H|².',
+  body: `<p class="f">μ<sub>Y</sub> = μ<sub>X</sub>·H(0) · S<sub>Y</sub>(ω) = S<sub>X</sub>(ω)|H(ω)|² · E[Y²] = (1/2π)∫S<sub>Y</sub>(ω)dω</p>
+<p class="f">R<sub>Y</sub>(τ) = R<sub>X</sub>(τ) * h(τ) * h(−τ) · S<sub>XY</sub> = S<sub>X</sub>·H</p>
+<p><b>שיטה:</b></p><ol><li>H(ω) מ-h(t).</li><li>|H|².</li><li>S<sub>Y</sub>.</li><li>הספק = שטח חלקי 2π.</li></ol>
+<p><b>רעש לבן</b> S<sub>N</sub> = N<sub>0</sub>/2 דרך RC ⇒ הספק N<sub>0</sub>/(4RC).</p>
+<p><b>מסנן וינר</b> (Y = X + N): H = S<sub>X</sub>/(S<sub>X</sub> + S<sub>N</sub>) – מעביר תדרים שבהם האות חזק מהרעש.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-10, 10], y: [0, 1.15], xl: 'ω', yl: 'S', xt: [[-10, '-10'], [0, '0'], [10, '10']], yt: [[0, '0'], [1, '1']] });
+    sliders(box, [{ k: 'rc', label: 'RC', min: 0.1, max: 2, step: 0.05, v: 0.5 }], v => {
+      P.clear(); const H2 = w => 1 / (1 + (w * v.rc) ** 2);
+      P.hline(1, 'S_N = N0/2', 'c3'); P.area(H2, -10, 10, 'c2'); P.fn(H2, 'c1');
+      return `S<sub>Y</sub> = (N<sub>0</sub>/2)|H|² · עם N<sub>0</sub>=2: הספק = 1/(2RC) = <b>${(1 / (2 * v.rc)).toFixed(2)}</b><br>RC גדול ⇒ פס צר ⇒ פחות רעש עובר`;
+    });
+  },
+  video: [
+    { t: 'רעש לבן: אותו הספק בכל התדרים. S<sub>N</sub>(ω) = N₀/2 – קו ישר.', d: P => P.hline(1, 'N0/2', 'c3') },
+    { t: 'מסנן RC: |H|² = 1/(1 + (ωRC)²). מעביר נמוכים, מנחית גבוהים.', d: P => { P.hline(1, '', 'c3'); P.fn(w => 1 / (1 + (w * 0.5) ** 2), 'c2'); } },
+    { t: 'במוצא: S<sub>Y</sub> = S<sub>N</sub>·|H|². ההספק = השטח מתחת לעקומה, חלקי 2π.', d: P => { P.area(w => 1 / (1 + (w * 0.5) ** 2), -10, 10, 'c1'); P.fn(w => 1 / (1 + (w * 0.5) ** 2), 'c1'); } },
+    { t: 'התוצאה: E[Y²] = N₀/(4RC). מלכודת: לשכוח את 1/2π או להשתמש ב-H במקום |H|².', d: P => { P.area(w => 1 / (1 + (w * 0.5) ** 2), -10, 10, 'c1'); } },
+  ],
+  vplot: { x: [-10, 10], y: [0, 1.15], xl: 'ω', yl: 'S' },
+  ex: { src: 'מבחן תשפ"ב סמ\' א, שאלה 3', inputs: { kind: 'mean', mu: 2, k: 0.5 } },
+  traps: ['S<sub>Y</sub> = S<sub>X</sub>·H במקום |H|².', 'לשכוח 1/2π כשמחשבים הספק מ-S(ω).', 'μ<sub>Y</sub> = μ<sub>X</sub>·H(0) – לא ∫h·μ בלי לחשב.'],
+  exam: 'שאלה 3 בכמעט כל מבחן, בשווי 30 נקודות: מערכת LTI ומסנן וינר.',
+};
+
+STRATEGY.signals = `<h3>מה ראינו במבחנים בדרייב (לדרמן / סימוני, 2015–2023)</h3>
+<p>3 שעות, 3 שאלות חובה (40+30+30), דף נוסחאות מצורף. <b>במבחנים האלה השאלות פתוחות.</b> אמרת שאצלך המבחן אמריקאי – לכן התרגול כאן בבחירה מרובה, עם מסיחים שבנויים מהטעויות הנפוצות.</p>
+<table class="t"><tr><th>שאלה</th><th>מה חוזר</th></tr>
+<tr><td>1 (40)</td><td>4 סעיפים בלתי תלויים: האם WSS? האם R(τ) תקינה? וקטור גאוסי Y=AX, משערך לינארי, בלתי מתואם מול בלתי תלוי</td></tr>
+<tr><td>2 (30)</td><td>וקטור/תהליך עם משתנים אחידים או גאוסיים: תוחלת, שונות, PDF משותפת, פונקציה אופיינית</td></tr>
+<tr><td>3 (30)</td><td>תהליך דרך מערכת LTI: H(ω), R<sub>Y</sub>, S<sub>Y</sub>, מסנן וינר, שגיאת שערוך</td></tr></table>
+<h3>סדר הלימוד המומלץ</h3><ol><li>PDF/CDF ← פונקציה אופיינית ← Y=aX+b</li><li>Cov, ρ ← בלתי תלויים/מתואמים ← משערך לינארי</li><li>WSS ואוטוקורלציה ← LTI ו-PSD ← וינר</li></ol>
+<h3>במבחן אמריקאי</h3><ul><li>לפני שמסתכלים על התשובות – לפתור לבד ולקבל מספר.</li><li>המסיחים בנויים מטעויות: שכחת ריבוע, שכחת 1/2π, Cov במקום ρ. אם התשובה שלך מופיעה – בדוק שלא נפלת באחת מהן.</li><li>שאלות "מה בהכרח נכון" – תחשוב על דוגמה נגדית (כמו Z=W·X).</li></ul>`;
+
 const SB_URL = 'https://enhqzgjqqyubgfysnjib.supabase.co';
 const SB_KEY = 'sb_publishable_w3aqbIxj_ECmMOUhANPebw_thGqD9o1';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 const TOL = 0.02;
-let user = null, progress = {}, timer = null, installEvt = null;
+let user = null, progress = {}, timer = null, installEvt = null, onLeave = null;
+const leave = () => { clearInterval(timer); if (onLeave) { onLeave(); onLeave = null; } };
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
 // כמו במגדל: הכפתור תמיד מוצג (חוץ מכשהמעבדה עצמה פתוחה כאפליקציה). יש חלון התקנה → מציגים אותו; אין → הוראות.
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -888,7 +1236,7 @@ const pctTxt = st => st && st.a ? Math.round(100 * st.c / st.a) + '%' : '—';
 
 // ---------- auth ----------
 function authView(mode = 'login', msg = '') {
-  clearInterval(timer);
+  leave();
   const titles = { login: 'כניסה', signup: 'הרשמה', forgot: 'שכחתי סיסמה', recover: 'סיסמה חדשה' };
   app().innerHTML = `<div class="card auth"><h1>מעבדת מבחנים</h1><h2>${titles[mode]}</h2>
     ${mode !== 'recover' ? '<input id="em" type="email" placeholder="אימייל" autocomplete="email">' : ''}
@@ -929,20 +1277,25 @@ sb.auth.onAuthStateChange((ev, session) => setTimeout(async () => {
   homeView();
 }));
 
+const LS_KEY = () => 'study_progress_' + user.id;
 async function loadProgress() {
-  progress = {};
-  const { data } = await sb.from('study_progress').select('course,topic,attempts,correct');
-  (data || []).forEach(r => ((progress[r.course] ??= {})[r.topic] = { a: r.attempts, c: r.correct }));
+  try { progress = JSON.parse(localStorage.getItem(LS_KEY())) || {}; } catch { progress = {}; }
+  try {
+    const { data, error } = await sb.from('study_progress').select('course,topic,attempts,correct');
+    if (error) throw error;
+    (data || []).forEach(r => { const cur = (progress[r.course] ??= {})[r.topic]; if (!cur || cur.a <= r.attempts) progress[r.course][r.topic] = { a: r.attempts, c: r.correct }; });
+  } catch { /* offline: keep the local copy */ }
 }
 async function record(course, topic, n, ok) {
   const st = ((progress[course] ??= {})[topic] ??= { a: 0, c: 0 });
   st.a += n; st.c += ok;
-  await sb.from('study_progress').upsert({ user_id: user.id, course, topic, attempts: st.a, correct: st.c, updated_at: new Date().toISOString() });
+  try { localStorage.setItem(LS_KEY(), JSON.stringify(progress)); } catch { }
+  try { await sb.from('study_progress').upsert({ user_id: user.id, course, topic, attempts: st.a, correct: st.c, updated_at: new Date().toISOString() }); } catch { }
 }
 
 // ---------- screens ----------
 function homeView() {
-  clearInterval(timer);
+  leave();
   app().innerHTML = `<header><h1>מעבדת מבחנים</h1>${instBtn()}<button id="out" class="ghost">יציאה</button></header>
     ${Object.entries(COURSES).map(([id, c]) => `<button class="course${c.soon ? ' soon' : ''}" data-c="${id}" ${c.soon ? 'disabled' : ''}>
       <b>${c.name}</b><span>${c.soon ? 'בקרוב' : `${Object.keys(c.topics).length} סוגי שאלות · דיוק ${courseAcc(id)}`}</span></button>`).join('')}`;
@@ -955,7 +1308,7 @@ function courseAcc(id) {
   return a ? Math.round(100 * c / a) + '%' : '—';
 }
 function courseView(id) {
-  clearInterval(timer);
+  leave();
   const C = COURSES[id];
   const groups = Object.entries(C.groups).map(([g, gname]) => `<h3>${gname}</h3>` +
     Object.entries(C.topics).filter(([, t]) => t.group === g).map(([k, t]) =>
@@ -972,10 +1325,13 @@ function courseView(id) {
   app().querySelectorAll('[data-t]').forEach(b => b.onclick = () => lessonView(id, b.dataset.t));
 }
 function lessonView(id, k) {
-  clearInterval(timer);
+  leave();
   const t = COURSES[id].topics[k], L = LESSONS[id][k], q = t.gen(L.ex.inputs), steps = q.sol.split('<br>');
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${t.title}</h1></header>
     <div class="card lesson"><p class="intro">${L.intro}</p>${L.body}</div>
+    ${L.video ? `<div class="card"><h3>🎬 סרטון הסבר</h3><div class="vid"><div id="vscreen"></div><p id="vcap" class="vcap"></p></div>
+      <div class="vdots">${L.video.map((_, i) => `<span data-i="${i}"></span>`).join('')}</div>
+      <div class="row"><button class="ghost" id="vprev">⏮</button><button class="primary" id="vplay">▶ נגן</button><button class="ghost" id="vnext">⏭</button><button class="ghost" id="vtts" title="הקראה">🔇</button></div></div>` : ''}
     ${L.graph ? '<div class="card"><h3>📈 גרף אינטראקטיבי – הזז את המחוונים</h3><div id="g"></div></div>' : ''}
     <div class="card"><h3>🎬 פתרון מודרך – ${L.ex.src}</h3><p class="q">${nb(q.text)}</p>
       <ol id="steps" class="steps">${steps.map((s, i) => `<li data-i="${i}">${nb(s)}</li>`).join('')}</ol>
@@ -984,6 +1340,7 @@ function lessonView(id, k) {
     <button class="primary wide" id="go">✏️ לתרגול – ${pctTxt(progress[id]?.[k])} דיוק עד עכשיו</button>`;
   isolateMath(app());
   if (L.graph) L.graph($('#g'));
+  if (L.video) videoPlayer(L);
   let cur = 0;
   const lis = [...app().querySelectorAll('#steps li')];
   const show = () => { lis.forEach((li, i) => li.className = i < cur ? 'on' : ''); $('#prev').disabled = cur === 0; $('#nextS').disabled = cur === lis.length; };
@@ -1001,6 +1358,32 @@ function lessonView(id, k) {
   $('#go').onclick = () => practice(id, [k]);
   scrollTo(0, 0);
 }
+// Animated lesson: scenes of {t: caption, d: draw(plot)}. Captions always shown; optional Hebrew narration.
+function videoPlayer(L) {
+  let i = 0, playing = false, tts = false, wait = null;
+  const he = () => speechSynthesis.getVoices().find(v => /^he|^iw/i.test(v.lang));
+  if (!('speechSynthesis' in window)) $('#vtts').hidden = true;
+  const render = () => {
+    const box = $('#vscreen'); box.innerHTML = ''; const P = plot(box, L.vplot); L.video[i].d(P);
+    $('#vcap').innerHTML = L.video[i].t; isolateMath($('#vcap').parentNode); $('#vcap').classList.remove('in'); void $('#vcap').offsetWidth; $('#vcap').classList.add('in');
+    app().querySelectorAll('.vdots span').forEach((s, k) => s.className = k < i ? 'done' : k === i ? 'cur' : '');
+  };
+  const stop = () => { playing = false; clearTimeout(wait); try { speechSynthesis.cancel(); } catch { } $('#vplay').textContent = '▶ נגן'; };
+  const advance = () => { if (!playing) return; if (i >= L.video.length - 1) return stop(); i++; render(); schedule(); };
+  const schedule = () => {
+    clearTimeout(wait);
+    const txt = $('#vcap').textContent;
+    if (tts && he()) { const u = new SpeechSynthesisUtterance(txt); u.voice = he(); u.lang = u.voice.lang; u.rate = 1; u.onend = () => { wait = setTimeout(advance, 700); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    else wait = setTimeout(advance, Math.max(4000, txt.length * 75));
+  };
+  $('#vplay').onclick = () => { if (playing) return stop(); playing = true; $('#vplay').textContent = '⏸ עצור'; if (i >= L.video.length - 1) { i = 0; render(); } schedule(); };
+  $('#vnext').onclick = () => { stop(); i = Math.min(L.video.length - 1, i + 1); render(); };
+  $('#vprev').onclick = () => { stop(); i = Math.max(0, i - 1); render(); };
+  $('#vtts').onclick = () => { tts = !tts; $('#vtts').textContent = tts ? '🔊' : '🔇'; if (tts && !he()) { $('#vcap').insertAdjacentHTML('afterend', '<p class="hint">אין קול עברי מותקן בטלפון – ההקראה לא זמינה. הכתוביות ממשיכות.</p>'); tts = false; $('#vtts').textContent = '🔇'; } };
+  app().querySelectorAll('.vdots span').forEach(s => s.onclick = () => { stop(); i = +s.dataset.i; render(); });
+  onLeave = stop;
+  render();
+}
 function weakest(id) {
   const score = k => { const s = progress[id]?.[k]; return s && s.a ? s.c / s.a : 0.5; };
   return Object.keys(COURSES[id].topics).sort((a, b) => score(a) - score(b)).slice(0, 3);
@@ -1011,6 +1394,10 @@ function sheetView(id) {
 }
 
 function partsHTML(q, qi) {
+  if (q.choices) {
+    q.parts = [{ mc: 1 }];
+    return `<div class="mc" id="p${qi}_0">${q.choices.map((c, i) => `<button class="choice" data-i="${i}"><b>${'אבגד'[i]}</b><span>${nb(c)}</span></button>`).join('')}<i></i></div>`;
+  }
   return q.parts.map((p, i) => `<div class="part" id="p${qi}_${i}"><label>${p.label} =</label>
     <input inputmode="decimal" dir="ltr" placeholder="1.23e16">
     ${p.units ? `<select>${['', ...shuffle(p.units)].map(u => `<option>${u}</option>`).join('')}</select>` : p.unit ? `<span>${p.unit}</span>` : ''}
@@ -1018,7 +1405,18 @@ function partsHTML(q, qi) {
 }
 const nb = h => h.replace(/(\d|<\/sup>) (?=[A-Za-zµΩÅ°%])/g, '$1&nbsp;');
 const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+function bindChoices(root) {
+  root.querySelectorAll('.mc').forEach(m => m.querySelectorAll('.choice').forEach(b => b.onclick = () => {
+    if (m.dataset.done) return; m.querySelectorAll('.choice').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+  }));
+}
 function grade(q, qi) {
+  if (q.choices) {
+    const m = $(`#p${qi}_0`), sel = m.querySelector('.choice.sel'), ok = sel && +sel.dataset.i === q.answer;
+    m.dataset.done = 1; m.querySelectorAll('.choice').forEach(b => { if (+b.dataset.i === q.answer) b.classList.add('right'); else if (b === sel) b.classList.add('wrong'); });
+    m.querySelector('i').textContent = ok ? '✓ נכון' : sel ? '✗ התשובה הנכונה מסומנת בירוק' : '✗ לא נבחרה תשובה';
+    return ok ? 1 : 0;
+  }
   let ok = 0;
   q.parts.forEach((p, i) => {
     const el = $(`#p${qi}_${i}`), v = parseNum(el.querySelector('input').value), sel = el.querySelector('select');
@@ -1032,13 +1430,13 @@ function grade(q, qi) {
 }
 
 function practice(id, keys) {
-  clearInterval(timer);
+  leave();
   const C = COURSES[id], k = keys[Math.floor(Math.random() * keys.length)], t = C.topics[k], q = t.gen();
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${t.title}</h1></header>
     <div class="card"><p class="q">${nb(q.text)}</p>${partsHTML(q, 0)}
     <div class="row"><button class="primary" id="check">בדוק</button><button class="ghost" id="next">שאלה אחרת</button></div>
     <details id="sol" hidden><summary>פתרון מלא</summary><div>${nb(q.sol)}</div></details></div>`;
-  isolateMath(app());
+  isolateMath(app()); bindChoices(app());
   $('#back').onclick = () => courseView(id);
   $('#next').onclick = () => practice(id, keys);
   $('#check').onclick = () => {
@@ -1058,7 +1456,7 @@ function examView(id) {
     ${qs.map(({ k, q }, i) => `<div class="card"><h3>שאלה ${i + 1} · ${C.groups[C.topics[k].group]}</h3><p class="q">${nb(q.text)}</p>${partsHTML(q, i)}
       <details hidden class="esol"><summary>פתרון</summary><div>${nb(q.sol)}</div></details></div>`).join('')}
     <button class="primary wide" id="submit">הגשה</button><p id="score" class="score"></p>`;
-  isolateMath(app());
+  isolateMath(app()); bindChoices(app());
   const tick = () => { $('#clock').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; if (left-- <= 0) submit(); };
   const submit = () => {
     clearInterval(timer);
