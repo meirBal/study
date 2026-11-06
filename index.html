@@ -881,7 +881,8 @@ function mc(correct, wrongs, f = v => fmt(v)) {
   return { choices: all.map(x => f(x[0])), answer: all.findIndex(x => x[1]) };
 }
 function mcText(correct, wrongs) {
-  const all = shuffleArr([[correct, true], ...wrongs.slice(0, 3).map(w => [w, false])]);
+  const uniq = [...new Set(wrongs)].filter(w => w !== correct).slice(0, 3);
+  const all = shuffleArr([[correct, true], ...uniq.map(w => [w, false])]);
   return { choices: all.map(x => x[0]), answer: all.findIndex(x => x[1]) };
 }
 const shuffleArr = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
@@ -908,12 +909,12 @@ const signals = {
     charFn: { group: 'rv', title: 'פונקציה אופיינית ומומנטים', gen(o = {}) {
       if ((o.kind ?? pick(['exp', 'gauss'])) === 'exp') {
         const l = o.l ?? pick([0.5, 1, 2, 4]), m2 = 2 / l ** 2;
-        return { text: `לא"מ X פונקציה אופיינית Φ<sub>X</sub>(ω) = ${l}/(${l} − jω). מה E[X²]?`, ...mc(m2, [1 / l ** 2, -2 / l ** 2, 1 / l]),
-          sol: `E[X<sup>n</sup>] = (−j)<sup>n</sup>·Φ<sup>(n)</sup>(0)<br>Φ″(ω) = 2j²λ/(λ−jω)³ = −2λ/(λ−jω)³ ⇒ Φ″(0) = −2/λ²<br>E[X²] = (−j)²·(−2/λ²) = <b>${fmt(m2)}</b> (זו Exp(λ): E[X²]=2/λ²)` };
+        return { text: `לא"מ X פונקציה אופיינית φ<sub>X</sub>(v) = ${l}/(${l} − iv). מה E[X²]?`, ...mc(m2, [1 / l ** 2, -2 / l ** 2, 1 / l]),
+          sol: `E[X<sup>n</sup>] = (−i)<sup>n</sup>·φ<sup>(n)</sup>(0)<br>φ″(v) = 2i²λ/(λ−iv)³ = −2λ/(λ−iv)³ ⇒ φ″(0) = −2/λ²<br>E[X²] = (−i)²·(−2/λ²) = <b>${fmt(m2)}</b> (זו Exp(λ): E[X²]=2/λ²)` };
       }
       const mu = o.mu ?? pick([0, 1, 2, -1, 3]), s2 = o.s2 ?? pick([1, 2, 4, 9]), m2 = s2 + mu * mu;
-      return { text: `Φ<sub>X</sub>(ω) = e<sup>j${mu}ω − ${s2 / 2}ω²</sup>. מה E[X²]?`, ...mc(m2, [s2, s2 / 2 + mu * mu, mu * mu]),
-        sol: `זו הצורה של גאוסי: Φ = e<sup>jμω − σ²ω²/2</sup> ⇒ μ = ${mu}, σ² = ${s2}<br>E[X²] = Var + E²[X] = ${s2} + ${mu * mu} = <b>${fmt(m2)}</b>` };
+      return { text: `φ<sub>X</sub>(v) = e<sup>i${mu}v − ${s2 / 2}v²</sup>. מה E[X²]?`, ...mc(m2, [s2, s2 / 2 + mu * mu, mu * mu]),
+        sol: `זו הצורה של גאוסי: φ = e<sup>iμv − σ²v²/2</sup> ⇒ μ = ${mu}, σ² = ${s2}<br>E[X²] = Var + E²[X] = ${s2} + ${mu * mu} = <b>${fmt(m2)}</b>` };
     } },
     linear: { group: 'rv', title: 'טרנספורמציה לינארית Y = aX + b', gen(o = {}) {
       const m = o.m ?? pick([0, 1, 2, -3, 5]), v = o.v ?? pick([1, 2, 4, 9]), a = o.a ?? pick([-3, -2, 2, 3, 0.5]), b = o.b ?? pick([1, -4, 5, 10]);
@@ -968,9 +969,10 @@ const signals = {
       return { text: `רעש לבן עם S<sub>N</sub>(ω) = N<sub>0</sub>/2, N<sub>0</sub> = ${fmt(N0)}, עובר במסנן RC: H(ω) = 1/(1 + jωRC), RC = ${fmt(RC)}. מה הספק המוצא?`, ...mc(P, [N0 / (2 * RC), N0 / RC, N0 / (4 * Math.PI * RC)]), sol: `|H|² = 1/(1+(ωRC)²)<br>E[Y²] = (1/2π)∫(N<sub>0</sub>/2)/(1+(ωRC)²)dω = (N<sub>0</sub>/2)·(1/2π)·(π/RC) = N<sub>0</sub>/(4RC) = <b>${fmt(P)}</b>` };
     } },
   },
-  sheet: `<h3>משתנה אקראי</h3><p>F(x)=P(X≤x) · f=dF/dx · E[X]=∫xf(x)dx · Var=E[X²]−E²[X]<br>אחיד U(a,b): E=(a+b)/2, Var=(b−a)²/12 · מעריכי Exp(λ): F=1−e<sup>−λx</sup>, E=1/λ, Var=1/λ²<br>גאוסי: Φ(ω)=e<sup>jμω−σ²ω²/2</sup> · Y=aX+b: E[Y]=aE[X]+b, Var[Y]=a²Var[X]</p>
-<h3>פונקציות יוצרות</h3><p>Φ<sub>X</sub>(ω)=E[e<sup>jωX</sup>] · E[X<sup>n</sup>]=(−j)<sup>n</sup>Φ<sup>(n)</sup>(0) · M<sub>X</sub>(v)=E[e<sup>vX</sup>], E[X<sup>n</sup>]=M<sup>(n)</sup>(0)</p>
-<h3>שני משתנים</h3><p>Cov=E[XY]−E[X]E[Y] · ρ=Cov/(σ<sub>X</sub>σ<sub>Y</sub>) · Var[X±Y]=Var[X]+Var[Y]±2Cov<br>X̂<sub>LMMSE</sub>=E[X]+Cov(X,Y)/Var[Y]·(Y−E[Y]) · E[e²]=Var[X](1−ρ²) · עקרון הניצבות: E[e·Y]=0</p>
+  sheet: `<h3>משתנה אקראי</h3><p>F(x)=P(X≤x) · f=dF/dx · E[X]=∫xf(x)dx · Var=E[X²]−E²[X]<br>אחיד U(a,b): E=(a+b)/2, Var=(b−a)²/12 · מעריכי Exp(λ): F=1−e<sup>−λx</sup>, E=1/λ, Var=1/λ²<br>גאוסי: φ(v)=e<sup>iμv−σ²v²/2</sup> · Y=aX+b: E[Y]=aE[X]+b, Var[Y]=a²Var[X]</p>
+<h3>פונקציות יוצרות</h3><p>φ<sub>X</sub>(v)=E{e<sup>ivX</sup>} · E[X<sup>n</sup>]=(−i)<sup>n</sup>φ<sup>(n)</sup>(0) · M<sub>X</sub>(v)=E[e<sup>vX</sup>], E[X<sup>n</sup>]=M<sup>(n)</sup>(0)</p>
+<h3>טרנספורמציה</h3><p>f<sub>Y</sub>(y)=Σf<sub>X</sub>(x<sub>i</sub>)/|g′(x<sub>i</sub>)|, x<sub>i</sub>=g<sup>−1</sup>(y) · aF<sub>X</sub>(X)+b ~ U[b,a+b]</p>
+<h3>שני משתנים</h3><p>F<sub>XY</sub>(α,β)=Prob{X≤α∩Y≤β} · f<sub>XY</sub>=∂²F/∂α∂β · f<sub>X</sub>=∫f<sub>XY</sub>dβ · φ<sub>XY</sub>(v,z)=E{e<sup>i(vX+zY)</sup>}<br>Corr=E{XY} · Cov=E[XY]−E[X]E[Y] · ρ=Cov/(σ<sub>X</sub>σ<sub>Y</sub>) · Var[X±Y]=Var[X]+Var[Y]±2Cov<br>X̂<sub>LMMSE</sub>=E[X]+Cov(X,Y)/Var[Y]·(Y−E[Y]) · E[e²]=Var[X](1−ρ²) · עקרון הניצבות: E[e·Y]=0</p>
 <h3>תהליכים</h3><p>WSS: μ קבוע, R<sub>X</sub>(t,t+τ)=R<sub>X</sub>(τ) · S<sub>X</sub>(ω)=∫R<sub>X</sub>(τ)e<sup>−jωτ</sup>dτ · E[X²]=R(0)=(1/2π)∫S(ω)dω<br>LTI: μ<sub>Y</sub>=μ<sub>X</sub>H(0) · S<sub>Y</sub>=S<sub>X</sub>|H|² · S<sub>XY</sub>=S<sub>X</sub>H · וינר: H=S<sub>XY</sub>/S<sub>Y</sub> = S<sub>X</sub>/(S<sub>X</sub>+S<sub>N</sub>)</p>`,
 };
 COURSES.signals = signals;
@@ -1013,21 +1015,21 @@ Lg.cdfPdf = {
 };
 Lg.charFn = {
   intro: 'הפונקציה האופיינית היא "התמרת פורייה" של ה-PDF. היתרון: גוזרים אותה ב-0 ומקבלים מומנטים בלי אינטגרלים.',
-  body: `<p class="f">Φ<sub>X</sub>(ω) = E[e<sup>jωX</sup>] · E[X<sup>n</sup>] = (−j)<sup>n</sup>·Φ<sup>(n)</sup>(0) · Φ(0) = 1</p>
-<p><b>פונקציה יוצרת מומנטים</b> – אותו רעיון בלי j: <span class="f">M<sub>X</sub>(v) = E[e<sup>vX</sup>] · E[X<sup>n</sup>] = M<sup>(n)</sup>(0)</span></p>
+  body: `<p class="f">φ<sub>X</sub>(v) = E{e<sup>ivX</sup>} · E[X<sup>n</sup>] = (−i)<sup>n</sup>·φ<sup>(n)</sup>(0) · φ(0) = 1</p>
+<p><b>פונקציה יוצרת מומנטים</b> – אותו רעיון בלי i: <span class="f">M<sub>X</sub>(v) = E[e<sup>vX</sup>] · E[X<sup>n</sup>] = M<sup>(n)</sup>(0)</span></p>
 <p><b>שיטה:</b> גוזרים פעם אחת ⇒ E[X]. פעמיים ⇒ E[X²]. ואז Var = E[X²] − E²[X].</p>
-<p><b>זיהוי מהיר:</b> Φ = e<sup>jμω − σ²ω²/2</sup> ⇒ גאוסי N(μ,σ²). Φ = λ/(λ − jω) ⇒ מעריכי.</p>
-<p><b>לסכום של בלתי תלויים:</b> Φ<sub>X+Y</sub> = Φ<sub>X</sub>·Φ<sub>Y</sub> – כפל במקום קונבולוציה.</p>`,
+<p><b>זיהוי מהיר:</b> φ = e<sup>iμv − σ²v²/2</sup> ⇒ גאוסי N(μ,σ²). φ = λ/(λ − iv) ⇒ מעריכי.</p>
+<p><b>לסכום של בלתי תלויים:</b> φ<sub>X+Y</sub> = φ<sub>X</sub>·φ<sub>Y</sub> – כפל במקום קונבולוציה.</p>`,
   graph: null,
   video: [
-    { t: 'יש לנו Φ(ω) = e<sup>j2ω − 2ω²</sup>. במקום לגזור – נזהה צורה.', d: P => { P.fn(gauss(2, 1.414), 'c2'); } },
-    { t: 'זו הצורה של גאוסי: e<sup>jμω − σ²ω²/2</sup>. לכן μ = 2, ו-σ²/2 = 2 ⇒ σ² = 4.', d: P => { P.fn(gauss(2, 2), 'c2'); P.vline(2, 'μ=2'); } },
+    { t: 'יש לנו φ(v) = e<sup>i2v − 2v²</sup>. במקום לגזור – נזהה צורה.', d: P => { P.fn(gauss(2, 1.414), 'c2'); } },
+    { t: 'זו הצורה של גאוסי: e<sup>iμv − σ²v²/2</sup>. לכן μ = 2, ו-σ²/2 = 2 ⇒ σ² = 4.', d: P => { P.fn(gauss(2, 2), 'c2'); P.vline(2, 'μ=2'); } },
     { t: 'E[X²] = Var + E²[X] = 4 + 4 = 8.', d: P => { P.fn(gauss(2, 2), 'c2'); P.vline(2, 'μ'); P.vline(4, 'μ+σ'); P.vline(0, 'μ−σ'); } },
-    { t: 'כשאין צורה מוכרת: גוזרים. E[X] = −j·Φ′(0). E[X²] = −Φ″(0). מקור הסימנים: (−j)<sup>n</sup>.', d: P => { P.fn(gauss(2, 2), 'c3'); } },
+    { t: 'כשאין צורה מוכרת: גוזרים. E[X] = −i·φ′(0). E[X²] = −φ″(0). מקור הסימנים: (−i)<sup>n</sup>.', d: P => { P.fn(gauss(2, 2), 'c3'); } },
   ],
   vplot: { x: [-4, 8], y: [0, 0.32], xl: 'x', yl: 'f', xt: [[-4, '-4'], [0, '0'], [4, '4'], [8, '8']] },
   ex: { src: 'דוגמה בסגנון המבחנים', inputs: { kind: 'exp', l: 2 } },
-  traps: ['לשכוח את (−j)<sup>n</sup> ולקבל E[X²] שלילי.', 'E[X²] ≠ Var. צריך להוסיף E²[X].', 'בפונקציה יוצרת מומנטים אין j – לא מכפילים ב-(−j)<sup>n</sup>.'],
+  traps: ['לשכוח את (−i)<sup>n</sup> ולקבל E[X²] שלילי.', 'E[X²] ≠ Var. צריך להוסיף E²[X].', 'בפונקציה יוצרת מומנטים אין i – לא מכפילים ב-(−i)<sup>n</sup>.'],
   exam: 'מופיע בדף הנוסחאות – וכסעיף קצר בשאלה 1.',
 };
 Lg.linear = {
@@ -1194,8 +1196,133 @@ STRATEGY.signals = `<h3>מה ראינו במבחנים בדרייב (לדרמן 
 <tr><td>1 (40)</td><td>4 סעיפים בלתי תלויים: האם WSS? האם R(τ) תקינה? וקטור גאוסי Y=AX, משערך לינארי, בלתי מתואם מול בלתי תלוי</td></tr>
 <tr><td>2 (30)</td><td>וקטור/תהליך עם משתנים אחידים או גאוסיים: תוחלת, שונות, PDF משותפת, פונקציה אופיינית</td></tr>
 <tr><td>3 (30)</td><td>תהליך דרך מערכת LTI: H(ω), R<sub>Y</sub>, S<sub>Y</sub>, מסנן וינר, שגיאת שערוך</td></tr></table>
-<h3>סדר הלימוד המומלץ</h3><ol><li>PDF/CDF ← פונקציה אופיינית ← Y=aX+b</li><li>Cov, ρ ← בלתי תלויים/מתואמים ← משערך לינארי</li><li>WSS ואוטוקורלציה ← LTI ו-PSD ← וינר</li></ol>
+<h3>סדר הלימוד המומלץ</h3><ol><li>PDF/CDF ← פונקציה אופיינית ← Y=aX+b ← טרנספורמציה Y=g(X)</li><li>שני מ"א ← Cov, ρ ← Corr/Cov/ρ ← בלתי תלויים/מתואמים ← משערך לינארי</li><li>WSS ואוטוקורלציה ← LTI ו-PSD ← וינר</li></ol>
+<h3>הסימון של המרצה (מההרצאות)</h3><p>φ<sub>X</sub>(v) = E{e<sup>ivX</sup>} עם i ו-v · Prob{X ≤ α} · משתני אינטגרציה α, β · Corr = E{XY}. האפליקציה כתובה באותו סימון.</p>
 <h3>במבחן אמריקאי</h3><ul><li>לפני שמסתכלים על התשובות – לפתור לבד ולקבל מספר.</li><li>המסיחים בנויים מטעויות: שכחת ריבוע, שכחת 1/2π, Cov במקום ρ. אם התשובה שלך מופיעה – בדוק שלא נפלת באחת מהן.</li><li>שאלות "מה בהכרח נכון" – תחשוב על דוגמה נגדית (כמו Z=W·X).</li></ul>`;
+
+// ---------- added after the 6.11.2026 lecture: transformation, two RVs, Corr/Cov/ρ ----------
+const T6 = {
+  transform: { group: 'rv', title: 'טרנספורמציה Y = g(X)', gen(o = {}) {
+    const kind = o.kind ?? pick(['cdf', 'cdfFind', 'sq', 'sqSym']);
+    if (kind === 'cdf') { const a = o.a ?? pick([2, 3, 4, 5]), b = o.b ?? pick([1, 4, 6, -2]);
+      return { text: `X מ"א רציף עם CDF F<sub>X</sub>. מגדירים Y = ${a}F<sub>X</sub>(X) + ${b}. מה ההתפלגות של Y?`, ...mcText(`Y ~ U[${b}, ${a + b}]`, [`Y ~ U[0, 1]`, `Y ~ U[${b}, ${a}]`, `Y ~ N(${b}, ${a * a})`]),
+        sol: `F<sub>X</sub>(X) תמיד מפולג אחיד ב-[0,1] (כשמציבים את המשתנה ב-CDF שלו).<br>g′(x) = ${a}f<sub>X</sub>(x) ⇒ f<sub>Y</sub> = f<sub>X</sub>/|${a}f<sub>X</sub>| = 1/${a} – קבוע.<br>g<sub>min</sub> = ${a}·0 + ${b} = ${b}, g<sub>max</sub> = ${a}·1 + ${b} = ${a + b} ⇒ <b>Y ~ U[${b}, ${a + b}]</b>` }; }
+    if (kind === 'cdfFind') { const c = o.c ?? pick([2, 5, 8, -1]), w = o.w ?? pick([1, 2, 3, 4]);
+      return { text: `רוצים g(X) = aF<sub>X</sub>(X) + b כך ש-Y = g(X) יהיה אחיד בקטע [${c}, ${c + w}]. מה a ו-b?`, ...mcText(`a = ${w}, b = ${c}`, [`a = ${c}, b = ${w}`, `a = ${c + w}, b = ${c}`, `a = 1/${w}, b = ${c}`, `a = ${w}, b = ${c + w}`]),
+        sol: `Y = aF<sub>X</sub> + b ~ U[b, a+b] (כי F<sub>X</sub> בין 0 ל-1).<br>b = ${c}, a + b = ${c + w} ⇒ <b>a = ${w}, b = ${c}</b>. בדיקה: הגובה 1/a = 1/${w} × רוחב ${w} = 1 ✓` }; }
+    const y0 = o.y ?? pick([0.04, 0.16, 0.25, 0.36, 0.64]);
+    if (kind === 'sq') { const f = 1 / (2 * Math.sqrt(y0));
+      return { text: `X ~ U(0, 1), Y = X². מה f<sub>Y</sub>(${y0})?`, ...mc(f, [2 * Math.sqrt(y0), 1 / (4 * Math.sqrt(y0)), 1]),
+        sol: `g(x) = x², g′(x) = 2x. בקטע (0,1) יש שורש אחד: x = √y.<br>f<sub>Y</sub>(y) = f<sub>X</sub>(√y)/|2√y| = 1/(2√y) = 1/(2·${fmt(Math.sqrt(y0))}) = <b>${fmt(f)}</b>` }; }
+    const f = 1 / (2 * Math.sqrt(y0));
+    return { text: `X ~ U(−1, 1), Y = X². מה f<sub>Y</sub>(${y0})?`, ...mc(f, [f / 2, 2 * f, 1 / (2 * y0)]),
+      sol: `g(x) = x² לא מונוטונית ⇒ שני שורשים: x = ±√y.<br>f<sub>Y</sub>(y) = Σ f<sub>X</sub>(x<sub>i</sub>)/|g′(x<sub>i</sub>)| = (½)/(2√y) + (½)/(2√y) = 1/(2√y) = <b>${fmt(f)}</b><br>מי ששכח את השורש השלילי מקבל חצי.` };
+  } },
+  joint: { group: 'pair', title: 'שני מ"א: PDF משותפת, שוליות ומומנטים', gen(o = {}) {
+    const kind = o.kind ?? pick(['cxy', 'cxpy', 'tri', 'exy']);
+    if (kind === 'cxy') return { text: 'f<sub>XY</sub>(x,y) = c·x·y עבור 0 < x < 1, 0 < y < 1 (אחרת 0). מה c?', ...mc(4, [1, 2, 0.25]), sol: `∫∫ f = 1: c·∫x dx·∫y dy = c·½·½ = c/4 = 1 ⇒ <b>c = 4</b>` };
+    if (kind === 'cxpy') return { text: 'f<sub>XY</sub>(x,y) = x + y עבור 0 < x, y < 1. מה ה-PDF השולית f<sub>X</sub>(x)?', ...mcText('x + ½', ['x', '2x', 'x + 1']), sol: `f<sub>X</sub>(x) = ∫<sub>0</sub><sup>1</sup>(x + y)dy = x + ½. בדיקה: ∫<sub>0</sub><sup>1</sup>(x + ½)dx = 1 ✓` };
+    if (kind === 'tri') return { text: 'f<sub>XY</sub>(x,y) = c עבור 0 < y < x < 1 (משולש). מה c?', ...mc(2, [1, 0.5, 4]), sol: `שטח המשולש = ½ ⇒ c·½ = 1 ⇒ <b>c = 2</b>. (f<sub>X</sub>(x) = ∫<sub>0</sub><sup>x</sup>2dy = 2x)` };
+    return { text: 'f<sub>XY</sub>(x,y) = 4xy עבור 0 < x, y < 1. מה המומנט המשותף E{XY}?', ...mc(4 / 9, [1 / 4, 2 / 3, 1 / 9]),
+      sol: `E{XY} = ∫∫xy·4xy dxdy = 4·(∫x²dx)(∫y²dy) = 4·⅓·⅓ = <b>4/9 ≈ 0.444</b><br>f = 4xy = (2x)(2y) ⇒ X, Y בלתי תלויים, וגם E[X]E[Y] = ⅔·⅔ = 4/9 ⇒ Cov = 0.` };
+  } },
+  invariance: { group: 'pair', title: 'Corr מול Cov מול ρ – מה משתנה בהכפלה והזזה', gen(o = {}) {
+    const kind = o.kind ?? pick(['cov', 'rho', 'bank']);
+    if (kind === 'cov') { const c = o.c ?? pick([2, 3, -1.5, 0.5]), a = o.a ?? pick([2, 3, -2]), b = o.b ?? pick([1, 5, -4]), d = o.d ?? pick([3, -1, 4]), e = o.e ?? pick([2, -3, 7]);
+      const r = a * d * c; return { text: `Cov(X,Y) = ${c}. מה Cov(${a}X + ${b}, ${d}Y + ${e})?`, ...mc(r, [a * d * c + b * e, c, (a + b) * (d + e) * c]),
+        sol: `Cov(aX+b, dY+e) = a·d·Cov(X,Y) – הקבועים b, e נעלמים (הזזה לא משנה סטייה מהממוצע).<br>= ${a}·${d}·${c} = <b>${fmt(r)}</b>` }; }
+    if (kind === 'rho') { const r = o.r ?? pick([0.3, 0.6, -0.4, 0.8]), a = o.a ?? pick([2, 5, -3]), d = o.d ?? pick([3, -2, 10]);
+      const out = Math.sign(a * d) * r; return { text: `ρ<sub>XY</sub> = ${r}. מה ρ בין ${a}X + 1 ל-${d}Y − 7?`, ...mc(out, [r * a * d, -out, r * Math.abs(a * d) / (a * a)]),
+        sol: `ρ לא מושפע מהזזה ולא מגודל ההכפלה – רק מהסימן שלה.<br>sign(${a}·${d}) = ${a * d > 0 ? '+' : '−'} ⇒ ρ = <b>${fmt(out)}</b>` }; }
+    const bank = [
+      ['מכפילים את Y ב-3 (מגבר). מה לא משתנה?', 'ρ<sub>XY</sub>', ['Corr(X,Y) = E{XY}', 'Cov(X,Y)', 'E{Y²}'], 'Corr ו-Cov גדלים פי 3. ρ מנורמל בסטיות התקן – לא משתנה.'],
+      ['מוסיפים ל-Y קבוע (DC של 5V). מה משתנה?', 'Corr(X,Y) = E{XY}', ['Cov(X,Y)', 'ρ<sub>XY</sub>', 'Var(Y)'], 'E{X(Y+5)} = E{XY} + 5E{X} – משתנה (אם E{X}≠0). Cov ו-ρ מחסירים את הממוצע – לא משתנים.'],
+      ['בדוגמת ה-ECG מההרצאה: אות מוגבר פי 100 נראה "יותר מתואם". למה?', 'Corr = E{XY} רגיש לאמפליטודה, ולכן הערך שלה יחסי ולא מוחלט', ['האות המוגבר באמת דומה יותר', 'Cov לא תלוי באמפליטודה', 'ρ גדל עם ההגבר'], 'Corr ו-Cov נותנים ערך יחסי שתלוי בעוצמה. בשביל ערך מוחלט מנרמלים – ρ.'],
+      ['מה נכון תמיד לגבי ρ?', '0 ≤ |ρ| ≤ 1', ['0 ≤ ρ ≤ 1', 'ρ = Cov(X,Y)', 'ρ = 0 ⇒ בלתי תלויים'], '|ρ| ≤ 1 (קושי-שוורץ). ρ יכול להיות שלילי, ו-ρ = 0 רק אומר בלתי מתואמים.'],
+      ['האות Y הוא X מוזז בזמן (shift). למה ρ בין הדגימות עלול לצאת קטן, ומה הפתרון בהרצאה?', 'ρ בין הדגימות רגיש להזזה בזמן; משווים התפלגויות: ρ(f<sub>X</sub>, f<sub>Y</sub>)', ['ρ תמיד 1 לאות מוזז', 'צריך להגדיל את האמפליטודה', 'Cov פותר את זה'], 'הזזה/מתיחה בזמן משנות את ההתאמה בין דגימות. ההתפלגות (כמה פעמים כל ערך מופיע) לא משתנה – לכן עוברים למרחב ההסתברות.'],
+    ];
+    const [q, c, w, ex] = bank[o.i ?? Math.floor(Math.random() * bank.length)];
+    return { text: q, ...mcText(c, w), sol: ex };
+  } },
+};
+{ const order = ['cdfPdf', 'charFn', 'linear', 'transform', 'joint', 'covCorr', 'invariance', 'indep', 'lmmse', 'acValid', 'lti'], all = { ...signals.topics, ...T6 };
+  signals.topics = Object.fromEntries(order.map(k => [k, all[k]])); }
+
+Lg.transform = {
+  intro: 'יודעים את ההתפלגות של X, ורוצים את זו של Y = g(X). יש שלוש דרכים, והמרצה הראה את כולן.',
+  body: `<p><b>הדרכים לפתרון:</b></p><ol><li><b>נוסחת טרנספורמציה</b> (הכי מהירה).</li><li>דרך ה-CDF: F<sub>Y</sub>(y) = P(g(X) ≤ y), ואז גוזרים.</li><li>דרך הפונקציה האופיינית (לא תמיד עובד – בהרצאה זה נתקע).</li></ol>
+<p class="f">f<sub>Y</sub>(y) = Σ f<sub>X</sub>(x<sub>i</sub>) / |g′(x<sub>i</sub>)| , x<sub>i</sub> = g<sup>−1</sup>(y)</p>
+<p>כש-g מונוטונית יש שורש אחד. כש-g לא מונוטונית (כמו x²) – <b>סוכמים על כל השורשים</b>.</p>
+<p><b>התרגיל מההרצאה:</b> g(x) = 2F<sub>X</sub>(x) + 4 ⇒ g′ = 2f<sub>X</sub> ⇒ f<sub>Y</sub> = f<sub>X</sub>/(2f<sub>X</sub>) = ½. הטווח: F<sub>X</sub> בין 0 ל-1 ⇒ g בין 4 ל-6 ⇒ <b>Y ~ U[4,6]</b>, לא משנה מה ההתפלגות של X.</p>
+<p>ובכיוון ההפוך: כדי לקבל U[8,10] בוחרים g(x) = 2F<sub>X</sub>(x) + 8.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1], y: [0, 6], xl: 'y', yl: 'f_Y', xt: [[0, '0'], [0.5, '0.5'], [1, '1']], yt: [[0, '0'], [2, '2'], [4, '4'], [6, '6']] });
+    sliders(box, [{ k: 'y', label: 'y', min: 0.02, max: 0.98, step: 0.01, v: 0.25 }], v => {
+      P.clear(); P.fn(y => 1 / (2 * Math.sqrt(y)), 'c1', 0.007, 1); P.dot(v.y, 1 / (2 * Math.sqrt(v.y)), 'f_Y(y)');
+      return `X ~ U(0,1), Y = X²: f<sub>Y</sub>(${v.y}) = 1/(2√y) = <b>${(1 / (2 * Math.sqrt(v.y))).toFixed(3)}</b><br>הצפיפות מתפוצצת ליד 0: הרבה ערכי x קטנים "נדחסים" לערכי y קטנים עוד יותר`;
+    });
+  },
+  video: [
+    { t: 'X כלשהו. מגדירים Y = 2F<sub>X</sub>(X) + 4. נשתמש בנוסחת הטרנספורמציה.', d: P => { P.fn(x => gauss(1.5, 0.8)(x) * 1.2, 'c3'); } },
+    { t: 'g′(x) = 2f<sub>X</sub>(x). לכן f<sub>Y</sub> = f<sub>X</sub>/(2f<sub>X</sub>) = ½ – קבוע!', d: P => { P.hline(0.5, '½', 'c1'); } },
+    { t: 'הטווח: F<sub>X</sub> בין 0 ל-1 ⇒ Y בין 4 ל-6. גובה ½ × רוחב 2 = שטח 1 ✓', d: P => { P.path([[3, 0], [4, 0], [4, 0.5], [6, 0.5], [6, 0], [7, 0]], 'c1'); P.area(() => 0.5, 4, 6, 'c1'); } },
+    { t: 'זה עובד לכל X: הצבת משתנה ב-CDF של עצמו נותנת תמיד אחיד. רוצים U[8,10]? g = 2F<sub>X</sub> + 8.', d: P => { P.path([[7, 0], [8, 0], [8, 0.5], [10, 0.5], [10, 0]], 'c2'); P.area(() => 0.5, 8, 10, 'c2'); } },
+    { t: 'כש-g לא מונוטונית, כמו x², לכל y יש שני מקורות ±√y – סוכמים את שניהם.', d: P => { P.fn(x => 0.12 * (x - 5) ** 2, 'c3', 2, 8); P.hline(0.48, 'y'); P.dot(3, 0.48, '−√y'); P.dot(7, 0.48, '+√y'); } },
+  ],
+  vplot: { x: [0, 11], y: [0, 1.2], xl: 'y', yl: 'f', xt: [[0, '0'], [4, '4'], [6, '6'], [8, '8'], [10, '10']] },
+  ex: { src: 'תרגיל חובה מההרצאה 6.11', inputs: { kind: 'cdf', a: 2, b: 4 } },
+  traps: ['לשכוח את הערך המוחלט |g′|.', 'ב-x² לשכוח את השורש השלילי – התשובה יוצאת חצי.', 'לכתוב f<sub>Y</sub> בלי טווח – צריך לציין איפה היא שונה מאפס.'],
+  exam: 'תרגיל חובה מ-6.11 ושאלה שחוזרת במבחנים (Y = g(X), וקטור Y = AX).',
+};
+Lg.joint = {
+  intro: 'כשיש שני משתנים, מתארים אותם ביחד: הסתברות שגם X ≤ α וגם Y ≤ β.',
+  body: `<p class="f">F<sub>X,Y</sub>(α,β) = Prob{X ≤ α ∩ Y ≤ β} · f<sub>X,Y</sub>(α,β) = ∂²F<sub>X,Y</sub>/∂α∂β · φ<sub>X,Y</sub>(v,z) = E{e<sup>i(vX + zY)</sup>}</p>
+<ul><li><b>נרמול:</b> ∫∫f<sub>X,Y</sub> = 1 – כך מוצאים קבוע c.</li><li><b>שולית:</b> f<sub>X</sub>(α) = ∫f<sub>X,Y</sub>(α,β)dβ – "מאפסים" את המשתנה השני.</li><li><b>בלתי תלויים</b> ⇔ f<sub>X,Y</sub> = f<sub>X</sub>·f<sub>Y</sub> (וגם התחום מלבני).</li></ul>
+<p class="f">E{g(X,Y)} = ∫∫g(α,β)f<sub>X,Y</sub>(α,β)dαdβ</p>
+<p><b>מומנטים משותפים</b> מסדר m,n: E{X<sup>m</sup>Y<sup>n</sup>}. <b>מרכזיים:</b> E{(X−μ<sub>X</sub>)<sup>m</sup>(Y−μ<sub>Y</sub>)<sup>n</sup>}.</p>
+<p>המקרה m = n = 1: E{XY} = Corr(X,Y), והמרכזי = Cov(X,Y).</p>`,
+  graph: null,
+  video: [
+    { t: 'f<sub>XY</sub> = c בתוך המשולש 0 < y < x < 1. הצפיפות קבועה – כמו "סדין" בגובה c.', d: P => { P.el('polygon', { points: `${P.X(0)},${P.Y(0)} ${P.X(1)},${P.Y(0)} ${P.X(1)},${P.Y(1)}`, class: 'fill c1' }); P.path([[0, 0], [1, 0], [1, 1], [0, 0]], 'c1'); } },
+    { t: 'הנפח מתחת לסדין חייב להיות 1. שטח המשולש = ½ ⇒ c·½ = 1 ⇒ c = 2.', d: P => { P.el('polygon', { points: `${P.X(0)},${P.Y(0)} ${P.X(1)},${P.Y(0)} ${P.X(1)},${P.Y(1)}`, class: 'fill c1' }); P.el('text', { x: P.X(0.68), y: P.Y(0.3), class: 'lbl c1' }, 'c = 2'); } },
+    { t: 'שולית של X: לכל x סוכמים לאורך הקו האנכי – y מ-0 עד x. f<sub>X</sub>(x) = 2x.', d: P => { P.el('polygon', { points: `${P.X(0)},${P.Y(0)} ${P.X(1)},${P.Y(0)} ${P.X(1)},${P.Y(1)}`, class: 'fill c1' }); P.path([[0.6, 0], [0.6, 0.6]], 'c2'); P.dot(0.6, 0.6, 'y = x'); } },
+    { t: 'התחום לא מלבני ⇒ X ו-Y תלויים: אם יודעים X = 0.3, אז Y חייב להיות קטן מ-0.3.', d: P => { P.el('polygon', { points: `${P.X(0)},${P.Y(0)} ${P.X(1)},${P.Y(0)} ${P.X(1)},${P.Y(1)}`, class: 'fill c1' }); P.vline(0.3, 'x=0.3'); } },
+  ],
+  vplot: { x: [0, 1.1], y: [0, 1.1], xl: 'x', yl: 'y', xt: [[0, '0'], [0.5, '0.5'], [1, '1']], yt: [[0, '0'], [1, '1']] },
+  ex: { src: 'דוגמה בסגנון ההרצאה', inputs: { kind: 'exy' } },
+  traps: ['לשכוח את גבולות האינטגרציה בתחום לא מלבני.', 'לחשוב שמכפלה f = g(x)h(y) מספיקה לאי-תלות – צריך גם תחום מלבני.', 'לבלבל בין E{XY} (קורלציה) ל-Cov.'],
+  exam: 'בסיס לשאלות וקטור אקראי ותהליכים.',
+};
+Lg.invariance = {
+  intro: 'שלושה מדדים לקשר בין X ל-Y. ההבדל ביניהם: מה קורה כשמגבירים או מזיזים אות. זו בדיוק דוגמת ה-ECG מההרצאה.',
+  body: `<table class="t"><tr><th>מדד</th><th>הגדרה</th><th>Y → aY</th><th>Y → Y + b</th></tr>
+<tr><td>Corr</td><td>E{XY}</td><td>×a</td><td>משתנה</td></tr>
+<tr><td>Cov</td><td>E{(X−μ<sub>X</sub>)(Y−μ<sub>Y</sub>)}</td><td>×a</td><td>לא משתנה</td></tr>
+<tr><td>ρ</td><td>Cov/(√Var X·√Var Y)</td><td>רק הסימן</td><td>לא משתנה</td></tr></table>
+<p><b>מסקנת ההרצאה:</b> Corr ו-Cov נותנים ערך <b>יחסי</b>, לא מוחלט. ρ מנורמל: 0 ≤ |ρ| ≤ 1. כש-Y ≡ X: Cov(X,X) = Var(X) ⇒ ρ = 1.</p>
+<p><b>הבעיה השנייה – זמן:</b> אם Y הוא X מוזז או מתוח בזמן (time shifting/scaling), ההשוואה דגימה-מול-דגימה נכשלת. הפתרון: לעבור למרחב ההסתברות ולהשוות את ההתפלגויות ρ(f<sub>X</sub>, f<sub>Y</sub>). למשל X = [1,2,3] ו-X̃ = [1,1,2,2,3,3] – אותה התפלגות (⅓ לכל ערך).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 10], y: [-6, 16], xl: 't', yl: '', xt: [[0, '0'], [5, '5'], [10, '10']], yt: [[0, '0'], [10, '10']] });
+    const ecg = t => { const u = ((t % 5) + 5) % 5; return 0.4 * Math.exp(-((u - 1) ** 2) * 20) + (u > 2.3 && u < 2.5 ? (u - 2.3) * 25 : u >= 2.5 && u < 2.7 ? 5 - (u - 2.5) * 35 : u >= 2.7 && u < 2.8 ? -2 + (u - 2.7) * 20 : 0) + 0.6 * Math.exp(-((u - 3.6) ** 2) * 8); };
+    sliders(box, [{ k: 'a', label: 'הגבר a', min: 0.2, max: 3, step: 0.1, v: 1 }, { k: 'b', label: 'DC b', min: -4, max: 4, step: 0.5, v: 0 }], v => {
+      P.clear(); P.fn(ecg, 'c3', 0, 10, 400); P.fn(t => v.a * ecg(t) + v.b, 'c1', 0, 10, 400);
+      const N = 400, xs = [], ys = []; for (let i = 0; i < N; i++) { const t = 10 * i / N; xs.push(ecg(t)); ys.push(v.a * ecg(t) + v.b); }
+      const m = a => a.reduce((s, x) => s + x, 0) / N, mx = m(xs), my = m(ys), corr = m(xs.map((x, i) => x * ys[i])), cov = corr - mx * my, rho = cov / Math.sqrt((m(xs.map(x => x * x)) - mx * mx) * (m(ys.map(y => y * y)) - my * my));
+      return `Corr = <b>${corr.toFixed(2)}</b> · Cov = <b>${cov.toFixed(2)}</b> · ρ = <b>${rho.toFixed(2)}</b><br>הגבר משנה את Corr ואת Cov<br>רמת DC משנה רק את Corr<br>ρ נשאר 1`;
+    });
+  },
+  video: [
+    { t: 'שני אותות ECG: X (אפור) ו-Y (צהוב) זהים בצורה.', d: P => { P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 5, 'c3'); P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 5, 'c1'); } },
+    { t: 'מגבירים את Y פי 2: Corr = E{XY} מוכפל ב-2 – למרות שהצורה לא השתנתה.', d: P => { P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 5, 'c3'); P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 10, 'c1'); } },
+    { t: 'מוסיפים ל-Y רמת DC: Corr משתנה שוב. Cov מחסירה את הממוצע ולא מושפעת.', d: P => { P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 5, 'c3'); P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 5 + 4, 'c1'); } },
+    { t: 'ρ = Cov/(σ<sub>X</sub>σ<sub>Y</sub>) מבטל את ההגבר: גם עכשיו ρ = 1. זה מה שהופך אותו למדד מוחלט.', d: P => { P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 5, 'c3'); P.fn(t => Math.exp(-((t - 5) ** 2) * 3) * 10 + 4, 'c1'); } },
+    { t: 'אבל אם Y מוזז בזמן, גם ρ נכשל. לכן משווים את ההתפלגויות ולא את הדגימות.', d: P => { P.fn(t => Math.exp(-((t - 4) ** 2) * 3) * 5, 'c3'); P.fn(t => Math.exp(-((t - 7) ** 2) * 3) * 5, 'c1'); } },
+  ],
+  vplot: { x: [0, 10], y: [-1, 15], xl: 't', yl: '' },
+  ex: { src: 'דוגמת ה-ECG מההרצאה 6.11', inputs: { kind: 'bank', i: 1 } },
+  traps: ['לחשוב שהזזה (DC) משנה את Cov.', 'לחשוב ש-ρ משתנה עם ההגבר – רק הסימן יכול להתהפך.', 'Corr בקורס = E{XY}, לא ρ.'],
+  exam: 'שאלות "מה משתנה כש…" מתאימות במיוחד למבחן אמריקאי.',
+};
 
 const SB_URL = 'https://enhqzgjqqyubgfysnjib.supabase.co';
 const SB_KEY = 'sb_publishable_w3aqbIxj_ECmMOUhANPebw_thGqD9o1';
