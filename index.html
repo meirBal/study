@@ -93,6 +93,11 @@ h1 bdi[dir=ltr], .topic bdi[dir=ltr], .sliders bdi[dir=ltr], .part label bdi[dir
 .vdots { display:flex; gap:6px; justify-content:center; margin-top:10px; }
 .vdots span { width:22px; height:5px; border-radius:3px; background:var(--line); cursor:pointer; }
 .vdots span.done { background:#7a6332; } .vdots span.cur { background:var(--acc); }
+.file { display:flex; gap:8px; margin-bottom:8px; }
+.fopen { flex:1; display:flex; gap:8px; align-items:center; text-align:right; flex-wrap:wrap; }
+.fopen b { font-weight:500; flex:1; word-break:break-word; }
+.fopen em { font-style:normal; font-size:12px; color:var(--ok); }
+.upl { display:block; text-align:center; padding:12px; border-radius:10px; cursor:pointer; }
 #clock { font-variant-numeric:tabular-nums; color:var(--acc); }
 </style>
 </head>
@@ -330,6 +335,52 @@ const energy = {
 <h3>סינכרוני</h3><p>מנוע: Ṽ=Ẽ+jXĨ · גנרטור: Ẽ=Ṽ+jXĨ · P=3V<sub>ph</sub>I<sub>ph</sub>cosφ=3V<sub>ph</sub>E<sub>ph</sub>sinθ/X</p>
 <h3>DC</h3><p>E=k<sub>e</sub>Φω · גנרטור: E=V+I<sub>a</sub>R<sub>a</sub> · מנוע: V=E+I<sub>a</sub>R<sub>a</sub>, ω=(V−I<sub>a</sub>R<sub>a</sub>)/k<sub>e</sub>Φ, M=k<sub>e</sub>ΦI<sub>a</sub></p>`,
 };
+
+
+// ---- from the 2010 exams (Axelrod): transformer tests, IM equivalent circuit, DC in parallel, rotor resistance, load voltage ----
+Object.assign(energy.topics, {
+  trTests: { group: 'tr', title: 'שנאי תלת-פאזי: פרמטרים מניסויי ריקם וקצר', gen(o = {}) {
+    const Sn = (o.Sn ?? pick([0.5, 1, 1.6])) * 1e6, V1 = o.V1 ?? pick([6000, 10000, 22000]), vsc = o.vsc ?? pick([3, 4, 5]), Psc = o.Psc !== undefined ? o.Psc * 1e3 : Sn * pick([0.008, 0.012, 0.015]);   // v_r% < v_sc%
+    const Poc = o.Poc !== undefined ? o.Poc * 1e3 : Sn * pick([0.003, 0.004, 0.006]), i0 = o.i0 ?? pick([0.02, 0.04, 0.05]);
+    const Vph = V1 / sq(3), In = Sn / (sq(3) * V1), Rsc = Psc / (3 * In * In), Zsc = vsc / 100 * Vph / In, Xsc = sq(Zsc * Zsc - Rsc * Rsc);
+    const Rc = V1 * V1 / Poc, I0 = i0 * In, Ic = Vph / Rc;
+    const Xp = Vph / sq(I0 * I0 - Ic * Ic);
+    return { text: `שנאי תלת-פאזי S<sub>n</sub> = ${Sn / 1e6} MVA, V<sub>line.1n</sub> = ${V1 / 1000} kV. קצר: P<sub>s.c</sub> = ${fmt(Psc / 1000)} kW, v<sub>s.c</sub> = ${vsc}%. ריקם: P<sub>o.c</sub> = ${fmt(Poc / 1000)} kW, I<sub>o.c</sub> = ${i0}I<sub>n</sub>. הנח חיבור כוכב וחלוקה שווה R<sub>1</sub> = R'<sub>2</sub>, X<sub>1</sub> = X'<sub>2</sub>. חשב את הפרמטרים לפאזה.`,
+      parts: [{ label: 'R<sub>1</sub> = R\'<sub>2</sub>', ans: Rsc / 2, unit: 'Ω', units: U('Ω', 'kΩ', 'mΩ') }, { label: 'X<sub>1</sub> = X\'<sub>2</sub>', ans: Xsc / 2, unit: 'Ω', units: U('Ω', 'kΩ', 'mΩ') }, { label: 'R<sub>C</sub>', ans: Rc, unit: 'Ω', units: U('Ω', 'kΩ', 'mΩ') }, { label: 'X<sub>φ</sub>', ans: Xp, unit: 'Ω', units: U('Ω', 'kΩ', 'mΩ') }],
+      sol: `V<sub>ph</sub> = ${V1}/√3 = ${fmt(Vph)} V, I<sub>n</sub> = S<sub>n</sub>/(√3V<sub>line</sub>) = ${fmt(In)} A<br>קצר: R<sub>sc</sub> = P<sub>s.c</sub>/(3I<sub>n</sub>²) = ${fmt(Rsc)} Ω, Z<sub>sc</sub> = v<sub>s.c</sub>·V<sub>ph</sub>/I<sub>n</sub> = ${fmt(Zsc)} Ω, X<sub>sc</sub> = √(Z²−R²) = ${fmt(Xsc)} Ω<br>R<sub>1</sub> = R'<sub>2</sub> = <b>${fmt(Rsc / 2)} Ω</b>, X<sub>1</sub> = X'<sub>2</sub> = <b>${fmt(Xsc / 2)} Ω</b><br>ריקם: R<sub>C</sub> = 3V<sub>ph</sub>²/P<sub>o.c</sub> = V<sub>line</sub>²/P<sub>o.c</sub> = <b>${fmt(Rc)} Ω</b><br>I<sub>0</sub> = ${fmt(I0)} A, I<sub>C</sub> = V<sub>ph</sub>/R<sub>C</sub> = ${fmt(Ic)} A, I<sub>φ</sub> = √(I<sub>0</sub>²−I<sub>C</sub>²) ⇒ X<sub>φ</sub> = V<sub>ph</sub>/I<sub>φ</sub> = <b>${fmt(Xp)} Ω</b>` };
+  } },
+  trLoad: { group: 'tr', title: 'שנאי: מתח מוצא על עומס (מעגל L)', gen(o = {}) {
+    const V1 = o.V1 ?? 2400, V2n = o.V2n ?? pick([600, 240, 480]), R = o.R ?? 4.26, X = o.X ?? 7.89, rl = o.rl ?? pick([5, 10, 20]), xl = o.xl ?? pick([0, 5, 10]);
+    const a = V1 / V2n, Rl = a * a * rl, Xl = a * a * xl, mag = sq(Rl * Rl + Xl * Xl) / sq((Rl + R) ** 2 + (Xl + X) ** 2), V2p = V1 * mag, V2 = V2p / a;
+    return { text: `שנאי חד-פאזי ${V1}V/${V2n}V, R<sub>1</sub>+R'<sub>2</sub> = ${R}Ω, X<sub>1</sub>+X'<sub>2</sub> = ${X}Ω (מופנים לראשוני). עומס Z<sub>L</sub> = (${rl} + j${xl})Ω בצד המשני. מה מתח המוצא V<sub>2</sub>? (מעגל L, הענף המקבילי בכניסה)`,
+      parts: [{ label: 'V<sub>2</sub>', ans: V2, unit: 'V', units: U('V', 'kV') }],
+      sol: `a = ${V1}/${V2n} = ${fmt(a)}, Z'<sub>L</sub> = a²Z<sub>L</sub> = ${fmt(Rl)} + j${fmt(Xl)} Ω<br>מחלק מתח: V'<sub>2</sub> = V<sub>1</sub>·|Z'<sub>L</sub>| / |Z<sub>sc</sub> + Z'<sub>L</sub>| = ${V1}·${fmt(mag, 4)} = ${fmt(V2p)} V<br>V<sub>2</sub> = V'<sub>2</sub>/a = <b>${fmt(V2)} V</b> (ענף הריקם בכניסה לא משפיע במעגל L)` };
+  } },
+  imCircuit: { group: 'im', title: 'מנוע השראה: זרם ו-cosφ ממעגל התמורה', gen(o = {}) {
+    const VL = o.VL ?? pick([400, 2300, 3300]), ns = o.ns ?? 1000, n = o.n ?? pick([940, 950, 960, 970]), R1 = o.R1 ?? 1.08, R2 = o.R2 ?? 2.14, x = o.x ?? 11.38, Rc = o.Rc ?? 2000, xp = o.xp ?? 150, eta = o.eta ?? 0.8;
+    const Vph = VL / sq(3), s = (ns - n) / ns, Rt = R1 + R2 / s, Z = sq(Rt * Rt + x * x), I2 = Vph / Z;
+    const re = I2 * Rt / Z + Vph / Rc, im = -I2 * x / Z - Vph / xp, I = sq(re * re + im * im), cos = re / I, I0 = Vph * sq(1 / Rc ** 2 + 1 / xp ** 2), cos0 = (Vph / Rc) / I0, Pn = eta * 3 * Vph * I * cos;
+    return { text: `מנוע השראה תלת-פאזי בכוכב: V<sub>line</sub> = ${VL}V, f = 50Hz, n<sub>n</sub> = ${n} rpm, R<sub>1</sub> = ${R1}Ω, R'<sub>2</sub> = ${R2}Ω, x<sub>1</sub>+x'<sub>2</sub> = ${x}Ω, R<sub>C</sub> = ${Rc}Ω, x<sub>φ</sub> = ${xp}Ω, η = ${eta}. (מעגל L) חשב I<sub>o.c</sub>, I<sub>ph.n</sub>, cosφ<sub>n</sub>, P<sub>n</sub>.`,
+      parts: [{ label: 'I<sub>o.c</sub>', ans: I0, unit: 'A', units: U('A', 'mA') }, { label: 'I<sub>ph.n</sub>', ans: I, unit: 'A', units: U('A', 'mA') }, { label: 'cosφ<sub>n</sub>', ans: cos, unit: '' }, { label: 'P<sub>n</sub>', ans: Pn / 1000, unit: 'kW', units: U('kW', 'W', 'kVA') }],
+      sol: `V<sub>ph</sub> = ${fmt(Vph)} V, n<sub>s</sub> = ${ns} ⇒ s = ${fmt(s)}<br>ריקם: I<sub>C</sub> = V/R<sub>C</sub> = ${fmt(Vph / Rc)}, I<sub>φ</sub> = V/x<sub>φ</sub> = ${fmt(Vph / xp)} ⇒ I<sub>o.c</sub> = <b>${fmt(I0)} A</b> (cosφ<sub>o.c</sub> = ${fmt(cos0)})<br>ענף העומס: Z = (R<sub>1</sub> + R'<sub>2</sub>/s) + j(x) = ${fmt(Rt)} + j${x} ⇒ I'<sub>2</sub> = ${fmt(I2)} A<br>סכום וקטורי: I = ${fmt(re)} − j${fmt(-im)} ⇒ I<sub>ph.n</sub> = <b>${fmt(I)} A</b>, cosφ<sub>n</sub> = <b>${fmt(cos)}</b><br>P<sub>n</sub> = η·3V<sub>ph</sub>I cosφ = <b>${fmt(Pn / 1000)} kW</b>` };
+  } },
+  rotorRes: { group: 'im', title: 'נגד נוסף ברוטור למומנט התנעה נדרש', gen(o = {}) {
+    const VL = o.VL ?? 400, n = o.n ?? pick([1455, 1460, 1470]), P = (o.P ?? pick([55, 82, 110])) * 1e3, R2 = o.R2 ?? 0.05, x2 = o.x2 ?? 0.18, a = o.a ?? 2.5, k = o.k ?? pick([1.2, 1.5, 2]);
+    const Vph = VL / sq(3), ws = 2 * Math.PI * 1500 / 60, Mmax = 3 * Vph * Vph / (4 * ws * x2), Mn = P / (n * 2 * Math.PI / 60), scr = R2 / (2 * x2);
+    const Mst = 2 * Mmax / (1 / scr + scr), c = 2 * Mmax / (k * Mn); if (c < 2) return this.gen(o);
+    const xs = (c - sq(c * c - 4)) / 2, Rtot = xs * 2 * x2, Rad = (Rtot - R2) / (a * a);
+    return { text: `מנוע השראה עם רוטור מלופף: V<sub>line</sub> = ${VL}V, P<sub>n</sub> = ${P / 1000} kW, n<sub>n</sub> = ${n} rpm, R'<sub>2</sub> = ${R2}Ω, x'<sub>2</sub> = ${x2}Ω, a<sub>s/r</sub> = ${a}. חשב M<sub>n</sub>, M<sub>max</sub>, M<sub>start</sub>, ואת הנגד הנוסף <u>בצד הרוטור</u> כדי לקבל M<sub>start</sub> = ${k}M<sub>n</sub>.`,
+      parts: [{ label: 'M<sub>n</sub>', ans: Mn, unit: 'N·m', units: U('N·m', 'kN·m', 'W') }, { label: 'M<sub>max</sub>', ans: Mmax, unit: 'N·m', units: U('N·m', 'kN·m', 'W') }, { label: 'M<sub>start</sub>', ans: Mst, unit: 'N·m', units: U('N·m', 'kN·m', 'W') }, { label: 'R<sub>ad</sub>', ans: Rad * 1000, unit: 'mΩ', units: U('mΩ', 'Ω') }],
+      sol: `ω<sub>s</sub> = ${fmt(ws)} rad/s, M<sub>n</sub> = P<sub>n</sub>/ω<sub>n</sub> = <b>${fmt(Mn)} N·m</b><br>M<sub>max</sub> = 3V<sub>ph</sub>²/(4ω<sub>s</sub>x'<sub>2</sub>) = <b>${fmt(Mmax)} N·m</b>, s<sub>cr</sub> = R'<sub>2</sub>/(2x'<sub>2</sub>) = ${fmt(scr)}<br>התנעה (s=1): M<sub>st</sub> = 2M<sub>max</sub>/(1/s<sub>cr</sub> + s<sub>cr</sub>) = <b>${fmt(Mst)} N·m</b><br>רוצים ${k}M<sub>n</sub> = ${fmt(k * Mn)}: 1/s'<sub>cr</sub> + s'<sub>cr</sub> = 2M<sub>max</sub>/M<sub>st</sub> = ${fmt(c)} ⇒ s'<sub>cr</sub> = ${fmt(xs)} (השורש הקטן)<br>R'<sub>2,tot</sub> = s'<sub>cr</sub>·2x'<sub>2</sub> = ${fmt(Rtot)} Ω ⇒ R'<sub>ad</sub> = ${fmt(Rtot - R2)} Ω ⇒ בצד הרוטור R<sub>ad</sub> = R'<sub>ad</sub>/a² = <b>${fmt(Rad * 1000)} mΩ</b>` };
+  } },
+  dcParallel: { group: 'dc', title: 'שני גנרטורי DC במקביל על עומס', gen(o = {}) {
+    const RL = o.RL ?? pick([8.82, 10, 5]), PL = (o.PL ?? pick([4, 5, 6])) * 1e3, E1 = o.E1 ?? null, Ra1 = o.Ra1 ?? pick([0.4, 0.5, 0.6]), Ra2 = o.Ra2 ?? pick([0.6, 0.73, 0.8]);
+    const V = sq(PL * RL), It = V / RL, e1 = E1 ?? Math.round(V + pick([4, 5, 6]) * Ra1 * 2), I1 = (e1 - V) / Ra1, I2 = It - I1, E2 = V + I2 * Ra2;
+    return { text: `שני גנרטורי DC במקביל על עומס R<sub>L</sub> = ${RL}Ω. E<sub>1</sub> = ${e1}V, R<sub>a1</sub> = ${Ra1}Ω, R<sub>a2</sub> = ${Ra2}Ω. העומס צריך לקבל P<sub>L</sub> = ${PL / 1000} kW. חשב V<sub>o</sub>, I<sub>1</sub>, I<sub>2</sub> ואת E<sub>2</sub>.`,
+      parts: [{ label: 'V<sub>o</sub>', ans: V, unit: 'V', units: U('V', 'kV') }, { label: 'I<sub>1</sub>', ans: I1, unit: 'A', units: U('A', 'mA') }, { label: 'I<sub>2</sub>', ans: I2, unit: 'A', units: U('A', 'mA') }, { label: 'E<sub>2</sub>', ans: E2, unit: 'V', units: U('V', 'kV') }],
+      sol: `V<sub>o</sub> = √(P<sub>L</sub>R<sub>L</sub>) = <b>${fmt(V)} V</b>, I<sub>tot</sub> = V/R<sub>L</sub> = ${fmt(It)} A<br>I<sub>1</sub> = (E<sub>1</sub> − V)/R<sub>a1</sub> = <b>${fmt(I1)} A</b>, I<sub>2</sub> = I<sub>tot</sub> − I<sub>1</sub> = <b>${fmt(I2)} A</b><br>E<sub>2</sub> = V + I<sub>2</sub>R<sub>a2</sub> = <b>${fmt(E2)} V</b><br>שני הגנרטורים "רואים" אותו V – הקו האופייני החיצוני של כל אחד: V = E − I·R<sub>a</sub>.` };
+  } },
+});
 
 const COURSES = {
   semi, energy,
@@ -778,6 +829,79 @@ Le.synch = {
   ex: { src: 'דוגמה בסגנון המבחנים', inputs: { P: 40, VL: 380, cos: 0.8, X: 2 } },
   traps: ['להשתמש ב-V<sub>L</sub> במקום V<sub>ph</sub>.', 'לשכוח שבמנוע הסימן של jXI הפוך.', 'זווית δ היא בין E ל-V, לא בין I ל-V.'],
   exam: 'שאלה 3 בחלק מהמבחנים: מספרים פשוטים + דיאגרמה וקטורית.',
+};
+
+Le.trTests = {
+  intro: 'שני ניסויים נותנים את כל ששת הפרמטרים של מעגל התמורה: ניסוי קצר את הענף הטורי, וניסוי ריקם את הענף המקבילי.',
+  body: `<p><b>בתלת-פאזי עובדים לפאזה:</b> V<sub>ph</sub> = V<sub>line</sub>/√3 (כוכב), I<sub>n</sub> = S<sub>n</sub>/(√3V<sub>line</sub>), וכל הספק מחלקים ב-3.</p>
+<p><b>ניסוי קצר</b> (משני מקוצר, זרם נומינלי, מתח נמוך – הברזל כמעט לא מגונט):</p>
+<p class="f">R<sub>sc</sub> = P<sub>s.c</sub>/(3I<sub>n</sub>²) · Z<sub>sc</sub> = v<sub>s.c</sub>·V<sub>ph</sub>/I<sub>n</sub> · X<sub>sc</sub> = √(Z<sub>sc</sub>² − R<sub>sc</sub>²)</p>
+<p>ואז מחלקים שווה: R<sub>1</sub> = R'<sub>2</sub> = R<sub>sc</sub>/2, X<sub>1</sub> = X'<sub>2</sub> = X<sub>sc</sub>/2.</p>
+<p><b>ניסוי ריקם</b> (מתח נומינלי, בלי עומס – כמעט אין זרם בענף הטורי):</p>
+<p class="f">R<sub>C</sub> = 3V<sub>ph</sub>²/P<sub>o.c</sub> · I<sub>C</sub> = V<sub>ph</sub>/R<sub>C</sub> · I<sub>φ</sub> = √(I<sub>0</sub>² − I<sub>C</sub>²) · X<sub>φ</sub> = V<sub>ph</sub>/I<sub>φ</sub></p>`,
+  graph: null,
+  ex: { src: 'מבחן 1.08.2010 (מועד ב), שאלה 1', inputs: { Sn: 1, V1: 6000, Psc: 12, vsc: 3, Poc: 6, i0: 0.04 } },
+  traps: ['לא לחלק את P ב-3 בתלת-פאזי.', 'להשתמש ב-V<sub>line</sub> במקום V<sub>ph</sub>.', 'לחשב X<sub>φ</sub> = V/I<sub>0</sub> – צריך קודם להוריד את הרכיב האקטיבי I<sub>C</sub>.'],
+  exam: 'שאלה 1 בחלק מהמבחנים, לפעמים יחד עם זיהוי קבוצת החיבור מהשרטוט.',
+};
+Le.trLoad = {
+  intro: 'כמה מתח מגיע לעומס? במעגל L זה פשוט מחלק מתח בין עכבת הקצר לבין העכבה המופנית של העומס.',
+  body: `<div class="circ">${circuitSVG()}</div>
+<p><b>שלבים:</b></p><ol><li>מפנים את העומס לצד הראשוני: Z'<sub>L</sub> = a²Z<sub>L</sub>, a = V<sub>1n</sub>/V<sub>2n</sub>.</li><li>מחלק מתח: V'<sub>2</sub> = V<sub>1</sub>·|Z'<sub>L</sub>| / |Z<sub>sc</sub> + Z'<sub>L</sub>|.</li><li>מחזירים לצד המשני: V<sub>2</sub> = V'<sub>2</sub>/a.</li></ol>
+<p>במעגל L הענף המקבילי יושב בכניסה, על V<sub>1</sub> ישירות, ולכן הוא לא משפיע על מתח המוצא.</p>
+<p>בדיקת סבירות: V<sub>2</sub> קצת מתחת לנומינלי (עומס השראי). עם עומס קיבולי הוא יכול לעלות מעליו.</p>`,
+  graph: null,
+  ex: { src: 'מבחן 27.06.2010 (מועד א), שאלה 1ג', inputs: { V1: 2400, V2n: 600, R: 4.26, X: 7.89, rl: 10, xl: 10 } },
+  traps: ['לשכוח להפנות את Z<sub>L</sub> (×a²).', 'לחבר את |Z| כמספרים במקום כמספרים מרוכבים.', 'לשכוח לחלק ב-a בסוף.'],
+  exam: 'סעיף ג׳ בשאלת שנאי חד-פאזי.',
+};
+Le.imCircuit = {
+  intro: 'זרם המנוע הוא סכום וקטורי של שני ענפים: זרם המגנוט הקבוע (ענף מקבילי), וזרם העומס שתלוי בהחלקה.',
+  body: `<p class="f">Z<sub>load</sub> = (R<sub>1</sub> + R'<sub>2</sub>/s) + j(x<sub>1</sub> + x'<sub>2</sub>) · I'<sub>2</sub> = V<sub>ph</sub>/Z<sub>load</sub></p>
+<p class="f">I<sub>0</sub> = V<sub>ph</sub>/R<sub>C</sub> − jV<sub>ph</sub>/x<sub>φ</sub> · Ĩ = Ĩ<sub>0</sub> + Ĩ'<sub>2</sub> · cosφ = Re{Ĩ}/|Ĩ|</p>
+<p><b>שלבים:</b></p><ol><li>s מ-n<sub>n</sub> (n<sub>s</sub> הקרוב מעליו: 940 ⇒ 1000).</li><li>זרם הריקם: כמעט כולו ריאקטיבי ⇒ cosφ<sub>o.c</sub> נמוך מאוד.</li><li>זרם העומס: R'<sub>2</sub>/s גדול ⇒ כמעט אקטיבי.</li><li>מחברים ברכיבים (ממשי ומדומה בנפרד).</li><li>P<sub>n</sub> = η·P<sub>in</sub> = η·3V<sub>ph</sub>I cosφ.</li></ol>
+<p>למה מנוע השראה בעומס חלקי מקבל cosφ גרוע? כי זרם המגנוט נשאר, וזרם העומס קטן.</p>`,
+  graph: null,
+  ex: { src: 'מבחן 1.08.2010 (מועד ב), שאלה 2', inputs: { VL: 2300, ns: 1000, n: 940, R1: 1.08, R2: 2.14, x: 11.38, Rc: 2000, xp: 150, eta: 0.8 } },
+  traps: ["לחבר את הזרמים כגדלים (|I<sub>0</sub>| + |I'<sub>2</sub>|) ולא וקטורית.", 'לשכוח את R<sub>1</sub> בענף העומס.', 'P<sub>n</sub> הוא הספק המוצא – כפול η, לא P<sub>in</sub>.'],
+  exam: 'שאלה 2 במבחן 1.08.2010.',
+};
+Le.rotorRes = {
+  intro: 'ברוטור מלופף אפשר להוסיף נגד דרך הטבעות. הנגד מזיז את s<sub>cr</sub> שמאלה, כלומר לכיוון ההתנעה, בלי לשנות את M<sub>max</sub>.',
+  body: `<p class="f">M<sub>max</sub> = 3V<sub>ph</sub>²/(4ω<sub>s</sub>x'<sub>2</sub>) · s<sub>cr</sub> = R'<sub>2</sub>/(2x'<sub>2</sub>) · M ≈ 2M<sub>max</sub>/(s/s<sub>cr</sub> + s<sub>cr</sub>/s)</p>
+<p><b>שלבים:</b></p><ol><li>M<sub>max</sub> ו-s<sub>cr</sub> לפי דף הנוסחאות.</li><li>מומנט התנעה: מציבים s = 1.</li><li>מהמומנט הנדרש: 1/s'<sub>cr</sub> + s'<sub>cr</sub> = 2M<sub>max</sub>/M<sub>st</sub> ⇒ משוואה ריבועית, לוקחים את השורש הקטן מ-1.</li><li>R'<sub>2,tot</sub> = s'<sub>cr</sub>·2x'<sub>2</sub> ⇒ R'<sub>ad</sub> = R'<sub>2,tot</sub> − R'<sub>2</sub>.</li><li>בצד הרוטור: R<sub>ad</sub> = R'<sub>ad</sub>/a<sup>2</sup><sub>s/r</sub>.</li></ol>
+<p>המומנט המקסימלי האפשרי בהתנעה הוא M<sub>max</sub>, כשבוחרים s'<sub>cr</sub> = 1.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1], y: [0, 1.1], xl: 's', yl: 'M/Mmax', xt: [[0, '0'], [0.5, '0.5'], [1, '1 (התנעה)']], yt: [[0, '0'], [0.5, '0.5'], [1, '1']] });
+    sliders(box, [{ k: 'r', label: 'R\'<sub>2,tot</sub>/R\'<sub>2</sub>', min: 1, max: 7, step: 0.1, v: 1 }], v => {
+      P.clear(); const scr = 0.139 * v.r, M = s => 2 / (s / scr + scr / s);
+      P.fn(M, 'c1', 0.002, 1); P.dot(scr, 1, 's_cr'); P.dot(1, M(1), 'M_start', 'c2', -60, -8);
+      return `s<sub>cr</sub> = ${scr.toFixed(3)} · M<sub>start</sub> = ${(M(1)).toFixed(2)}·M<sub>max</sub><br>נגד גדול יותר ⇒ השיא זז ימינה, לכיוון s = 1 – ו-M<sub>max</sub> לא משתנה`;
+    });
+  },
+  ex: { src: 'מבחן 27.06.2010 (מועד א), שאלה 2', inputs: { VL: 400, n: 1455, P: 82, R2: 0.05, x2: 0.18, a: 2.5, k: 1.5 } },
+  traps: ['לקחת את השורש הגדול של המשוואה (s<sub>cr</sub> > 1).', 'לשכוח להחזיר לצד הרוטור (÷a²).', 'ω<sub>s</sub> מסינכרוני (1500), לא מהמהירות הנומינלית.'],
+  exam: 'סעיף ב׳ בשאלת מנוע ההשראה עם רוטור מלופף.',
+};
+Le.dcParallel = {
+  intro: 'שני גנרטורים במקביל "רואים" אותו מתח. כל אחד תורם זרם לפי ההפרש בין ה-כא"מ שלו למתח המשותף.',
+  body: `<p class="f">V = E<sub>1</sub> − I<sub>1</sub>R<sub>a1</sub> = E<sub>2</sub> − I<sub>2</sub>R<sub>a2</sub> · I<sub>tot</sub> = I<sub>1</sub> + I<sub>2</sub> = V/R<sub>L</sub></p>
+<p><b>כשנתון הספק העומס:</b> V = √(P<sub>L</sub>R<sub>L</sub>), ומשם הכול נפתח: I<sub>tot</sub>, I<sub>1</sub> מהגנרטור הידוע, I<sub>2</sub> מההפרש, ו-E<sub>2</sub> מהמשוואה שלו.</p>
+<p><b>האופיין החיצוני</b> של כל גנרטור הוא קו יורד V = E − IR<sub>a</sub>. נקודות העבודה של שניהם יושבות על אותו גובה V.</p>
+<p>גנרטור עם E קטן מדי יקבל זרם שלילי – הוא יעבוד כמנוע.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 30], y: [180, 230], xl: 'I [A]', yl: 'V', xt: [[0, '0'], [10, '10'], [20, '20'], [30, '30']], yt: [[190, '190'], [210, '210'], [230, '230']] });
+    sliders(box, [{ k: 'e2', label: 'E<sub>2</sub> V', min: 210, max: 230, step: 0.5, v: 220 }], v => {
+      P.clear(); const E1 = 215, R1 = 0.5, R2 = 0.73, RL = 8.82;
+      const V = (E1 / R1 + v.e2 / R2) / (1 / R1 + 1 / R2 + 1 / RL), I1 = (E1 - V) / R1, I2 = (v.e2 - V) / R2;
+      P.fn(i => E1 - i * R1, 'c1'); P.fn(i => v.e2 - i * R2, 'c2'); P.hline(V, 'V');
+      P.dot(Math.max(0, I1), V, 'G1', 'c1'); P.dot(Math.max(0, I2), V, 'G2', 'c2');
+      return `V = ${V.toFixed(1)}V · I<sub>1</sub> = ${I1.toFixed(2)}A · I<sub>2</sub> = ${I2.toFixed(2)}A · P<sub>L</sub> = ${(V * V / RL / 1000).toFixed(2)}kW${I1 < 0 ? '<br>⚠ I<sub>1</sub> < 0: גנרטור 1 עובד כמנוע' : ''}`;
+    });
+  },
+  ex: { src: 'מבחן 1.08.2010 (מועד ב), שאלה 3', inputs: { RL: 8.82, PL: 5, E1: 215, Ra1: 0.5, Ra2: 0.73 } },
+  traps: ['להניח שהזרם מתחלק שווה בין הגנרטורים.', 'לשכוח ש-V משותף, ולחשב לכל גנרטור V אחר.'],
+  exam: 'שאלה 3 במבחן 1.08.2010, כולל שרטוט האופיינים החיצוניים.',
 };
 
 function circuitSVG() {
@@ -1442,10 +1566,11 @@ function courseView(id) {
       `<button class="topic" data-t="${k}"><span>${t.title}</span><em>${pctTxt(progress[id]?.[k])}</em></button>`).join('')).join('');
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${C.name}</h1></header>
     <div class="row"><button class="primary" id="weak">תרגול נקודות חולשה</button><button class="primary" id="exam">מבחן מלא (${C.minutes} דק')</button></div>
-    <div class="row"><button class="ghost" id="strat">🎯 איך נראה המבחן</button><button class="ghost" id="sheet">📄 דף נוסחאות</button></div>
+    <div class="row"><button class="ghost" id="strat">🎯 איך נראה המבחן</button><button class="ghost" id="sheet">📄 דף נוסחאות</button><button class="ghost" id="mat">📚 חומרים</button></div>
     <p class="hint">בחר נושא: 📖 שיעור עם גרף ופתרון מודרך, ואז ✏️ תרגול.</p>${groups}`;
   $('#back').onclick = homeView;
   $('#sheet').onclick = () => sheetView(id);
+  $('#mat').onclick = () => materialsView(id);
   $('#strat').onclick = () => { app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>איך נראה המבחן</h1></header><div class="card lesson">${STRATEGY[id]}</div>`; $('#back').onclick = () => courseView(id); isolateMath(app()); scrollTo(0, 0); };
   $('#weak').onclick = () => practice(id, weakest(id));
   $('#exam').onclick = () => examView(id);
@@ -1514,6 +1639,61 @@ function videoPlayer(L) {
 function weakest(id) {
   const score = k => { const s = progress[id]?.[k]; return s && s.a ? s.c / s.a : 0.5; };
   return Object.keys(COURSES[id].topics).sort((a, b) => score(a) - score(b)).slice(0, 3);
+}
+// ---------- materials: private PDFs/images per course in Supabase Storage (bucket study-files, folder <uid>/<course>/) ----------
+// Keys are base64url of the file name (storage keys must be ASCII); opened files are kept in Cache Storage for offline use.
+const BUCKET = 'study-files', FCACHE = 'study-files-v1';
+const b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64 = k => { try { const s = atob(k.replace(/-/g, '+').replace(/_/g, '/')); return new TextDecoder().decode(Uint8Array.from(s, c => c.charCodeAt(0))); } catch { return k; } };
+const keyOf = name => { const m = name.match(/\.([A-Za-z0-9]{1,5})$/); return b64(name.replace(/\.[A-Za-z0-9]{1,5}$/, '')) + (m ? '.' + m[1].toLowerCase() : ''); };
+const nameOf = key => { const m = key.match(/\.([a-z0-9]{1,5})$/); return unb64(key.replace(/\.[a-z0-9]{1,5}$/, '')) + (m ? '.' + m[1] : ''); };
+const idxKey = id => `study_files_${user.id}_${id}`;
+async function cachedFile(path) { try { const c = await caches.open(FCACHE); return await c.match('/files/' + path); } catch { return null; } }
+async function materialsView(id, msg = '') {
+  leave();
+  const dir = `${user.id}/${id}`;
+  let files = null;
+  try { const { data, error } = await sb.storage.from(BUCKET).list(dir, { limit: 200, sortBy: { column: 'name', order: 'asc' } }); if (error) throw error;
+    files = data.filter(f => f.id).map(f => f.name); localStorage.setItem(idxKey(id), JSON.stringify(files)); }
+  catch { try { files = JSON.parse(localStorage.getItem(idxKey(id))) || []; } catch { files = []; } msg ||= 'אין חיבור – מוצגים הקבצים שנשמרו בטלפון.'; }
+  const rows = await Promise.all(files.map(async k => `<div class="file"><button class="ghost fopen" data-k="${k}"><span>${/\.pdf$/.test(k) ? '📄' : '🖼'}</span><b>${nameOf(k)}</b>${await cachedFile(dir + '/' + k) ? '<em>✓ שמור בטלפון</em>' : ''}</button><button class="ghost fdel" data-k="${k}" aria-label="מחיקה">🗑</button></div>`));
+  app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>📚 חומרים – ${COURSES[id].name}</h1></header>
+    <div class="card"><p class="hint">מבחנים, פתרונות וסיכומים – פרטיים לחשבון שלך. קובץ שנפתח פעם אחת זמין גם בלי אינטרנט.</p>
+    <label class="primary upl">⬆ העלאת קבצים (אפשר לבחור כמה)<input type="file" id="up" accept="application/pdf,image/*" multiple hidden></label>
+    <p class="msg" id="fmsg">${msg}</p></div>
+    <div class="card">${rows.join('') || '<p class="hint">עדיין אין קבצים בקורס הזה.</p>'}</div>`;
+  $('#back').onclick = () => courseView(id);
+  $('#up').onchange = async e => {
+    const list = [...e.target.files]; let ok = 0;
+    for (const [i, f] of list.entries()) {
+      $('#fmsg').textContent = `מעלה ${i + 1}/${list.length}: ${f.name}`;
+      const { error } = await sb.storage.from(BUCKET).upload(`${dir}/${keyOf(f.name)}`, f, { upsert: true, contentType: f.type || 'application/pdf' });
+      if (error) { $('#fmsg').textContent = '⚠ ' + f.name + ': ' + error.message; return; }
+      ok++;
+    }
+    materialsView(id, `הועלו ${ok} קבצים ✓`);
+  };
+  app().querySelectorAll('.fopen').forEach(b => b.onclick = async () => {
+    const path = `${dir}/${b.dataset.k}`; $('#fmsg').textContent = 'פותח…';
+    let res = await cachedFile(path), blob;
+    if (res) blob = await res.blob();
+    else {
+      const { data, error } = await sb.storage.from(BUCKET).download(path);
+      if (error) return $('#fmsg').textContent = '⚠ אין חיבור והקובץ עוד לא נשמר בטלפון';
+      blob = data;
+      try { const c = await caches.open(FCACHE); await c.put('/files/' + path, new Response(blob, { headers: { 'Content-Type': blob.type } })); } catch { }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nameOf(b.dataset.k); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    $('#fmsg').textContent = '';
+    if (!b.querySelector('em')) b.insertAdjacentHTML('beforeend', '<em>✓ שמור בטלפון</em>');
+  });
+  app().querySelectorAll('.fdel').forEach(b => b.onclick = async () => {
+    if (!confirm('למחוק את "' + nameOf(b.dataset.k) + '"?')) return;
+    const path = `${dir}/${b.dataset.k}`, { error } = await sb.storage.from(BUCKET).remove([path]);
+    try { (await caches.open(FCACHE)).delete('/files/' + path); } catch { }
+    materialsView(id, error ? '⚠ ' + error.message : 'נמחק');
+  });
 }
 function sheetView(id) {
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>דף נוסחאות</h1></header><div class="card sheet">${COURSES[id].sheet}</div>`;
