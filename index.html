@@ -64,7 +64,8 @@ code { background:var(--bg); padding:2px 6px; border-radius:6px; word-break:brea
 .plot .dash { stroke-width:1; stroke-dasharray:4 3; }
 .plot .c1 { stroke:var(--acc); } .plot .c2 { stroke:#4fc3c3; } .plot .c3 { stroke:var(--mut); } .plot .c4 { stroke:#5a5f7d; }
 .plot .lbl.c2 { fill:#4fc3c3; } .plot .lbl.c1 { fill:var(--acc); }
-.plot .pt { fill:var(--tx); stroke-width:2; } .plot .pt.c2 { fill:#4fc3c3; } .plot .pt.c1 { fill:var(--acc); }
+.plot .pt { fill:var(--tx); stroke-width:2; } .plot .pt.c2 { fill:#4fc3c3; } .plot .pt.c1 { fill:var(--acc); } .plot .pt.c3 { fill:var(--mut); } .plot .pt.c5 { fill:#8f8fe0; } .plot .c5 { stroke:#8f8fe0; } .plot .lbl.c5 { fill:#8f8fe0; } .plot .lbl.c3 { fill:var(--mut); }
+.sch .dt { fill:var(--tx); }
 .plot .fill { stroke:none; fill-opacity:.18; } .plot .fill.c2 { fill:#4fc3c3; } .plot .fill.c1 { fill:var(--acc); }
 .plot .bar.b0 { fill:var(--acc); } .plot .bar.b1 { fill:#4fc3c3; } .plot .bar.b2 { fill:#8f8fe0; } .plot .bar.bad { fill:var(--bad); }
 .plot .box { fill:var(--bg); stroke:var(--tx); }
@@ -98,6 +99,33 @@ h1 bdi[dir=ltr], .topic bdi[dir=ltr], .sliders bdi[dir=ltr], .part label bdi[dir
 .fopen b { font-weight:500; flex:1; word-break:break-word; }
 .fopen em { font-style:normal; font-size:12px; color:var(--ok); }
 .upl { display:block; text-align:center; padding:12px; border-radius:10px; cursor:pointer; }
+.pills { display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; scrollbar-width:none; }
+.pills button { flex:0 0 auto; padding:7px 11px; font-size:13px; border:1px solid var(--line); background:transparent; color:var(--mut); }
+.pills button.seen { color:var(--tx); } .pills button.on { background:var(--acc); color:#1a1300; border-color:var(--acc); font-weight:700; }
+.sech { margin-top:0; }
+.simple p { font-size:17px; line-height:1.85; margin:0 0 12px; }
+.simple .ana { background:rgba(79,195,195,.08); border-right:3px solid #4fc3c3; padding:10px 12px; border-radius:8px; }
+.pic { margin-top:6px; }
+.syms { display:flex; flex-direction:column; gap:6px; }
+.sym { display:grid; grid-template-columns:64px 1fr auto; gap:10px; align-items:center; background:var(--bg); border-radius:8px; padding:8px 10px; }
+.sym b { color:var(--acc); font-size:18px; text-align:center; direction:ltr; }
+.sym span { font-size:14px; line-height:1.6; }
+.sym em { font-style:normal; font-size:12px; color:var(--mut); direction:ltr; white-space:nowrap; }
+.sym b bdi[dir=ltr], .sym em bdi[dir=ltr] { background:none; border:0; padding:0; }
+.qz { border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:10px; }
+.why { background:var(--bg); border-radius:8px; padding:8px 10px; font-size:14px; line-height:1.8; }
+.search { width:100%; background:var(--bg); color:var(--tx); border:1px solid var(--line); border-radius:8px; padding:10px; font:inherit; margin-bottom:8px; }
+.sch { direction:ltr; unicode-bidi:isolate; width:100%; height:auto; background:var(--bg); border-radius:10px; }
+.sch .w { fill:none; stroke:var(--tx); stroke-width:1.6; stroke-linejoin:round; }
+.sch .h { fill:none; stroke:var(--acc); stroke-width:2.6; }
+.sch .h2 { fill:none; stroke:#4fc3c3; stroke-width:2; }
+.sch .dsh { fill:none; stroke:var(--mut); stroke-width:1; stroke-dasharray:4 3; }
+.sch .core { fill:#3a3f58; stroke:#5a5f7d; }
+.sch .gapf { fill:var(--bg); }
+.sch .fl { fill:var(--acc); } .sch .fl2 { fill:#4fc3c3; }
+.sch text { fill:var(--tx); font-size:11px; font-family:system-ui, Arial, sans-serif; }
+.sch text.m { fill:var(--mut); font-size:10px; } .sch text.a { fill:var(--acc); } .sch text.c { fill:#4fc3c3; }
+.sch .src { fill:var(--card); stroke:var(--tx); stroke-width:1.6; }
 #clock { font-variant-numeric:tabular-nums; color:var(--acc); }
 </style>
 </head>
@@ -382,6 +410,135 @@ Object.assign(energy.topics, {
   } },
 });
 
+// ---- fundamentals from Dr. Arbel's lectures 4–12 + exercises 0–4 (phasors, 3-phase, magnetic circuits, transformer, induction motor) ----
+// complex numbers as [re, im]
+const Cx = {
+  p: (r, d) => [r * Math.cos(d * Math.PI / 180), r * Math.sin(d * Math.PI / 180)],
+  add: (a, b) => [a[0] + b[0], a[1] + b[1]], sub: (a, b) => [a[0] - b[0], a[1] - b[1]],
+  mul: (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]],
+  div: (a, b) => { const d = b[0] ** 2 + b[1] ** 2; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; },
+  abs: a => Math.hypot(a[0], a[1]), ang: a => deg(Math.atan2(a[1], a[0])),
+};
+const pol = z => `${fmt(Cx.abs(z))}∠${fmt(Cx.ang(z))}°`, rect = z => `${fmt(z[0])} ${z[1] < 0 ? '−' : '+'} j${fmt(Math.abs(z[1]))}`;
+const MU0 = 4 * Math.PI * 1e-7;
+Object.assign(energy.groups, { ac: 'חזרה: פאזורים, עכבה והספק (תרגיל 0, שיעור 5)', three: 'מערכות תלת-פאזיות (שיעורים 4–5, תרגיל 1)', mag: 'מעגלים מגנטיים (שיעורים 6–7, תרגיל 2)' });
+Object.assign(energy.topics, {
+  acSeries: { group: 'ac', title: 'מעגל טורי: עכבה, זרם וזווית מופע', gen(o = {}) {
+    const R = o.R ?? pick([10, 12, 20, 30, 40]), w = o.w ?? 314, L = (o.L ?? pick([31.85, 63.7, 86, 95.54, 127.4])) * 1e-3;
+    const C = o.C === null ? null : (o.C ?? pick([null, 177, 200, 318])) * 1e-6, Vm = o.Vm ?? pick([100, 106, 141, 200]);
+    const XL = w * L, XC = C ? 1 / (w * C) : 0, X = XL - XC, Z = sq(R * R + X * X), ph = deg(Math.atan2(X, R)), I = Vm / Z;
+    return { text: `מעגל טורי: R = ${R}Ω, L = ${fmt(L * 1e3)} mH${C ? `, C = ${fmt(C * 1e6)} µF` : ''}. מקור v(t) = ${Vm}·sin(${w}t) V. חשבו את גודל העכבה |Z|, את זווית המופע φ בין המתח לזרם ואת משרעת הזרם.`,
+      parts: [{ label: '|Z|', ans: Z, unit: 'Ω', units: U('Ω', 'kΩ') }, { label: 'φ', ans: ph, unit: '°', units: U('°', 'rad') }, { label: 'I<sub>m</sub>', ans: I, unit: 'A', units: U('A', 'mA') }],
+      sol: `X<sub>L</sub> = ωL = ${w}·${fmt(L)} = ${fmt(XL)} Ω${C ? `, X<sub>C</sub> = 1/(ωC) = ${fmt(XC)} Ω` : ''}<br>Z = R + j(X<sub>L</sub>${C ? ' − X<sub>C</sub>' : ''}) = ${R} ${X < 0 ? '−' : '+'} j${fmt(Math.abs(X))} Ω<br>|Z| = √(R² + X²) = <b>${fmt(Z)} Ω</b>, φ = arctan(X/R) = <b>${fmt(ph)}°</b> (${ph > 0 ? 'השראי: הזרם מפגר אחרי המתח' : ph < 0 ? 'קיבולי: הזרם מקדים את המתח' : 'התנגדותי'})<br>I<sub>m</sub> = V<sub>m</sub>/|Z| = <b>${fmt(I)} A</b>` };
+  } },
+  powerTri: { group: 'ac', title: 'הספק מרוכב, מקדם הספק ותיקון pf', gen(o = {}) {
+    const P1 = o.P1 ?? pick([20, 30, 40]), pf1 = o.pf1 ?? pick([0.6, 0.7, 0.8]), Q2 = o.Q2 ?? pick([30, 45, 60]), pf2 = o.pf2 ?? pick([0.8, 0.85, 0.9]), pt = o.pt ?? pick([0.9, 0.95]);
+    const VL = (o.VL ?? pick([0.4, 6.6, 22])) * 1e3, f = o.f ?? 50;
+    const Q1 = P1 * Math.tan(Math.acos(pf1)), P2 = Q2 / Math.tan(Math.acos(pf2)), P = P1 + P2, Q = Q1 + Q2, S = Math.hypot(P, Q), pf = P / S;
+    const Qc = P * (Q / P - Math.tan(Math.acos(pt))), C = Qc * 1e3 / 3 / (2 * Math.PI * f * VL * VL);
+    return { text: `שני עומסים תלת-פאזיים על קו של ${fmt(VL / 1e3)} kV, ${f} Hz: עומס 1 צורך ${P1} kW ב-pf = ${pf1} מפגר; עומס 2 צורך ${Q2} kVAR ב-pf = ${pf2} מפגר. חשבו את |S| הכולל, את מקדם ההספק הכולל, את ההספק הריאקטיבי שהקבלים צריכים לספק כדי להגיע ל-pf = ${pt}, ואת קיבול כל קבל (קבלים במשולש).`,
+      parts: [{ label: '|S<sub>T</sub>|', ans: S, unit: 'kVA', units: U('kVA', 'kW', 'kVAR') }, { label: 'pf<sub>T</sub>', ans: pf, unit: '' }, { label: 'Q<sub>C</sub>', ans: Qc, unit: 'kVAR', units: U('kVAR', 'kW', 'kVA') }, { label: 'C', ans: C * 1e6, unit: 'µF', units: U('µF', 'nF', 'pF', 'F') }],
+      sol: `עומס 1: Q<sub>1</sub> = P<sub>1</sub>·tan(cos⁻¹${pf1}) = ${fmt(Q1)} kVAR ⇒ S<sub>1</sub> = ${P1} + j${fmt(Q1)}<br>עומס 2: P<sub>2</sub> = Q<sub>2</sub>/tan(cos⁻¹${pf2}) = ${fmt(P2)} kW ⇒ S<sub>2</sub> = ${fmt(P2)} + j${Q2}<br>S<sub>T</sub> = S<sub>1</sub> + S<sub>2</sub> = ${fmt(P)} + j${fmt(Q)} ⇒ |S<sub>T</sub>| = <b>${fmt(S)} kVA</b>, pf = P/|S| = <b>${fmt(pf)}</b><br>Q<sub>C</sub> = P(tanθ<sub>old</sub> − tanθ<sub>new</sub>) = ${fmt(P)}(${fmt(Q / P)} − ${fmt(Math.tan(Math.acos(pt)))}) = <b>${fmt(Qc)} kVAR</b><br>לכל קבל Q<sub>C</sub>/3 = ${fmt(Qc / 3)} kVAR על מתח הקו: C = Q<sub>C1</sub>/(ωV<sub>L</sub>²) = <b>${fmt(C * 1e6)} µF</b>` };
+  } },
+  threeY: { group: 'three', title: 'כוכב (Y): מתח פאזה, זרם קו והספק', gen(o = {}) {
+    const VL = o.VL ?? pick([208, 380, 400, 440]), Zm = o.Zm ?? pick([10, 20, 40, 50]), th = o.th ?? pick([-30, 20, 30, 36.87, 45]);
+    const Vp = VL / sq(3), I = Vp / Zm, P = 3 * Vp * I * Math.cos(th * Math.PI / 180), Q = 3 * Vp * I * Math.sin(th * Math.PI / 180);
+    return { text: `מקור תלת-פאזי מאוזן בכוכב, מתח קו V<sub>L</sub> = ${VL} V, מזין עומס מאוזן בכוכב שעכבת כל פאזה בו Z = ${Zm}∠${th}° Ω. חשבו את מתח הפאזה, את זרם הקו ואת ההספק הממשי והריאקטיבי הכוללים.`,
+      parts: [{ label: 'V<sub>p</sub>', ans: Vp, unit: 'V', units: U('V', 'kV') }, { label: 'I<sub>L</sub>', ans: I, unit: 'A', units: U('A', 'mA') }, { label: 'P', ans: P / 1e3, unit: 'kW', units: U('kW', 'W', 'kVA') }, { label: 'Q', ans: Q / 1e3, unit: 'kVAR', units: U('kVAR', 'VAR', 'kW') }],
+      sol: `בכוכב: V<sub>p</sub> = V<sub>L</sub>/√3 = ${VL}/1.732 = <b>${fmt(Vp)} V</b>, והזרם בקו הוא הזרם בפאזה (I<sub>L</sub> = I<sub>p</sub>)<br>I<sub>L</sub> = V<sub>p</sub>/|Z| = <b>${fmt(I)} A</b>, והוא ${th > 0 ? 'מפגר' : 'מקדים'} ב-${Math.abs(th)}° אחרי מתח הפאזה<br>P = 3V<sub>p</sub>I<sub>p</sub>cosθ = √3V<sub>L</sub>I<sub>L</sub>cosθ = <b>${fmt(P / 1e3)} kW</b><br>Q = 3V<sub>p</sub>I<sub>p</sub>sinθ = <b>${fmt(Q / 1e3)} kVAR</b>${Q < 0 ? ' (שלילי ⇒ קיבולי)' : ''}` };
+  } },
+  threeDelta: { group: 'three', title: 'משולש (Δ): זרמי פאזה וזרמי קו', gen(o = {}) {
+    const VL = o.VL ?? pick([208, 330, 380, 400]), Z = o.Z ?? pick([[20, -15], [18, 12], [12, 16], [30, 40]]);
+    const Iab = Cx.div([VL, 0], Z), Ia = Cx.mul(Iab, Cx.p(sq(3), -30)), P = 3 * Cx.abs(Iab) ** 2 * Z[0];
+    return { text: `מקור תלת-פאזי מאוזן, V<sub>ab</sub> = ${VL}∠0° V, מזין עומס מאוזן במשולש Z<sub>Δ</sub> = ${rect(Z)} Ω. חשבו את זרם הפאזה I<sub>AB</sub>, את זרם הקו I<sub>a</sub> (גודל וזווית) ואת ההספק הממשי הכולל.`,
+      parts: [{ label: '|I<sub>AB</sub>|', ans: Cx.abs(Iab), unit: 'A', units: U('A', 'mA') }, { label: '|I<sub>a</sub>|', ans: Cx.abs(Ia), unit: 'A', units: U('A', 'mA') }, { label: '∠I<sub>a</sub>', ans: Cx.ang(Ia), unit: '°', units: U('°', 'rad') }, { label: 'P', ans: P / 1e3, unit: 'kW', units: U('kW', 'W') }],
+      sol: `במשולש כל עומס יושב בין שני קווים ⇒ המתח עליו הוא מתח הקו<br>I<sub>AB</sub> = V<sub>ab</sub>/Z<sub>Δ</sub> = ${VL}∠0° / ${pol(Z)} = <b>${pol(Iab)} A</b><br>זרם הקו הוא הפרש של שני זרמי פאזה: I<sub>a</sub> = I<sub>AB</sub> − I<sub>CA</sub> = √3·I<sub>AB</sub>∠−30°<br>I<sub>a</sub> = <b>${pol(Ia)} A</b><br>P = 3|I<sub>AB</sub>|²R = <b>${fmt(P / 1e3)} kW</b>` };
+  } },
+  threePower: { group: 'three', title: 'מהספק ו-pf לזרם קו ועכבת עומס', gen(o = {}) {
+    const P = (o.P ?? pick([6, 10, 12, 20])) * 1e3, pf = o.pf ?? pick([0.6, 0.8, 0.85]), lead = o.lead ?? Math.random() < 0.5, VL = o.VL ?? pick([208, 380, 400]);
+    const IL = P / (sq(3) * VL * pf), Vp = VL / sq(3), Z = Vp / IL, th = deg(Math.acos(pf)) * (lead ? -1 : 1);
+    return { text: `מערכת תלת-פאזית עם מתח קו ${VL} V מזינה עומס מאוזן בכוכב. ההספק הכולל ${P / 1e3} kW עם מקדם הספק ${pf} ${lead ? 'מקדים' : 'מפגר'}. חשבו את זרם הקו ואת עכבת העומס לפאזה (גודל וזווית).`,
+      parts: [{ label: 'I<sub>L</sub>', ans: IL, unit: 'A', units: U('A', 'mA', 'kA') }, { label: '|Z<sub>Y</sub>|', ans: Z, unit: 'Ω', units: U('Ω', 'mΩ', 'kΩ') }, { label: 'θ', ans: th, unit: '°', units: U('°', 'rad') }],
+      sol: `P = √3·V<sub>L</sub>·I<sub>L</sub>·cosθ ⇒ I<sub>L</sub> = ${P}/(√3·${VL}·${pf}) = <b>${fmt(IL)} A</b><br>V<sub>p</sub> = V<sub>L</sub>/√3 = ${fmt(Vp)} V ⇒ |Z<sub>Y</sub>| = V<sub>p</sub>/I<sub>L</sub> = <b>${fmt(Z)} Ω</b><br>θ = cos⁻¹(${pf}) = ${fmt(Math.abs(th))}°, ${lead ? 'מקדים ⇒ עומס קיבולי ⇒ זווית שלילית' : 'מפגר ⇒ עומס השראי ⇒ זווית חיובית'}: θ = <b>${fmt(th)}°</b>` };
+  } },
+  magGap: { group: 'mag', title: 'ליבה עם חריץ אוויר: רלוקטנס ומספר כריכות', gen(o = {}) {
+    const lc = (o.lc ?? pick([20, 30, 40])) / 100, A = (o.A ?? pick([3.3, 4, 9, 12])) * 1e-4, g = (o.g ?? pick([0.5, 1, 2])) * 1e-3;
+    const mr = o.mr ?? pick([2000, 4000, 5000]), B = o.B ?? pick([0.8, 1, 1.2]), I = o.I ?? pick([1, 2, 5]);
+    const Rc = lc / (MU0 * mr * A), Rg = g / (MU0 * A), Phi = B * A, F = Phi * (Rc + Rg), N = F / I;
+    return { text: `ליבת ברזל עם μ<sub>r</sub> = ${mr}, אורך מסלול ממוצע ${fmt(lc * 100)} cm ושטח חתך ${fmt(A * 1e4)} cm². בליבה חריץ אוויר של ${fmt(g * 1e3)} mm (הזניחו זליגה). דרושה צפיפות שטף ${B} T כאשר בסליל זורם ${I} A. חשבו את הרלוקטנס של הברזל, של החריץ, ואת מספר הכריכות.`,
+      parts: [{ label: 'ℛ<sub>c</sub>', ans: Rc, unit: 'A/Wb', units: U('A/Wb', 'Wb/A', 'H') }, { label: 'ℛ<sub>g</sub>', ans: Rg, unit: 'A/Wb', units: U('A/Wb', 'Wb/A', 'H') }, { label: 'N', ans: N, unit: 'כריכות', units: U('כריכות') }],
+      sol: `ℛ<sub>c</sub> = l<sub>c</sub>/(μ<sub>0</sub>μ<sub>r</sub>A) = ${fmt(lc)}/(4π×10<sup>-7</sup>·${mr}·${fmt(A)}) = <b>${fmt(Rc)} A/Wb</b><br>ℛ<sub>g</sub> = l<sub>g</sub>/(μ<sub>0</sub>A) = <b>${fmt(Rg)} A/Wb</b> ← פי ${fmt(Rg / Rc, 2)} מהברזל!<br>Φ = B·A = ${fmt(Phi)} Wb<br>"חוק אוהם המגנטי": NI = Φ(ℛ<sub>c</sub> + ℛ<sub>g</sub>) = ${fmt(F)} A ⇒ N = ${fmt(F)}/${I} = <b>${fmt(N)}</b>` };
+  } },
+  toroidGap: { group: 'mag', title: 'טורואיד עם חריץ: H בליבה ובחריץ, μr', gen(o = {}) {
+    const Di = (o.Di ?? pick([16, 20, 24])) / 100, Do = (o.Do ?? pick([21, 25, 30])) / 100, d = (o.d ?? pick([2, 3])) / 100, g = (o.g ?? pick([0.5, 1])) * 1e-3;
+    const N = o.N ?? pick([300, 500, 800]), I = o.I ?? pick([2, 3, 4]), Bg = o.Bg ?? pick([0.8, 1, 1.2]);
+    if (Do <= Di) return this.gen(o);
+    const l = Math.PI * (Di + Do) / 2, A = (Do - Di) / 2 * d, F = N * I, Hg = Bg / MU0, Hc = (F - Hg * g) / l;
+    if (Hc <= 0) return this.gen(o);
+    const mr = Bg / (MU0 * Hc), RT = F / (Bg * A);
+    return { text: `טורואיד בעל קוטר פנימי ${fmt(Di * 100)} cm, קוטר חיצוני ${fmt(Do * 100)} cm וחתך מלבני בעומק ${fmt(d * 100)} cm. חריץ אוויר ${fmt(g * 1e3)} mm. סליל של ${N} כריכות, זרם ${I} A, ובחריץ B = ${Bg} T. חשבו H בחריץ ובליבה, את μ<sub>r</sub> ואת הרלוקטנס הכולל.`,
+      parts: [{ label: 'H<sub>g</sub>', ans: Hg, unit: 'A/m', units: U('A/m', 'T', 'A') }, { label: 'H<sub>c</sub>', ans: Hc, unit: 'A/m', units: U('A/m', 'T', 'A') }, { label: 'μ<sub>r</sub>', ans: mr, unit: '' }, { label: 'ℛ<sub>T</sub>', ans: RT, unit: 'A/Wb', units: U('A/Wb', 'Wb/A') }],
+      sol: `אורך המסלול הממוצע l = π(D<sub>i</sub>+D<sub>o</sub>)/2 = ${fmt(l)} m, שטח A = ${fmt(A)} m²<br>הכמ"מ F = NI = <b>${F} A</b><br>בחריץ: H<sub>g</sub> = B/μ<sub>0</sub> = <b>${fmt(Hg)} A/m</b><br>חוק אמפר: NI = H<sub>c</sub>l<sub>c</sub> + H<sub>g</sub>l<sub>g</sub> ⇒ H<sub>c</sub> = (${F} − ${fmt(Hg * g)})/${fmt(l)} = <b>${fmt(Hc)} A/m</b><br>אותו שטף ואותו שטח ⇒ אותו B בברזל: μ<sub>r</sub> = B/(μ<sub>0</sub>H<sub>c</sub>) = <b>${fmt(mr)}</b><br>ℛ<sub>T</sub> = F/Φ = ${F}/(${Bg}·${fmt(A)}) = <b>${fmt(RT)} A/Wb</b>` };
+  } },
+  trIdeal: { group: 'tr', title: 'שנאי אידיאלי: הפניית עכבה והפסדי קו', gen(o = {}) {
+    const mode = o.mode ?? pick(['tx', 'direct']), Vg = o.Vg ?? pick([480, 1000, 2400]);
+    const Zl = o.Zl ?? pick([[0.18, 0.24], [0.5, 1], [1, 2]]), ZL = o.ZL ?? pick([[4, 3], [8, 6], [12, 9]]), a = o.a ?? 10;
+    const k = mode === 'tx' ? a * a : 1, ZLp = [ZL[0] * k, ZL[1] * k], Vin = mode === 'tx' ? Vg * a : Vg;
+    const I = Vin / Cx.abs(Cx.add(Zl, ZLp)), VLp = I * Cx.abs(ZLp), VL = mode === 'tx' ? VLp / a : VLp, Pl = I * I * Zl[0];
+    const txt = mode === 'tx' ? `גנרטור ${Vg}∠0° V מחובר לשנאי מעלה 1:${a}, משם קו עם עכבה Z<sub>line</sub> = ${rect(Zl)} Ω, ובסוף הקו שנאי מוריד ${a}:1 שמזין עומס Z<sub>L</sub> = ${rect(ZL)} Ω (שנאים אידיאליים).` : `גנרטור ${Vg}∠0° V מחובר ישירות (בלי שנאים) דרך קו עם עכבה Z<sub>line</sub> = ${rect(Zl)} Ω לעומס Z<sub>L</sub> = ${rect(ZL)} Ω.`;
+    return { text: `${txt} חשבו את זרם הקו, את מתח העומס ואת הפסדי ההספק בקו.`,
+      parts: [{ label: 'I<sub>line</sub>', ans: I, unit: 'A', units: U('A', 'mA', 'kA') }, { label: '|V<sub>L</sub>|', ans: VL, unit: 'V', units: U('V', 'kV') }, { label: 'P<sub>loss</sub>', ans: Pl, unit: 'W', units: U('W', 'kW', 'VA') }],
+      sol: mode === 'tx' ? `מעבירים את העומס לצד הקו דרך השנאי המוריד: Z'<sub>L</sub> = a²Z<sub>L</sub> = ${a * a}·(${rect(ZL)}) = ${rect(ZLp)} Ω<br>מעבירים את הגנרטור לצד הקו דרך השנאי המעלה: V' = ${a}·${Vg} = ${Vin} V<br>I<sub>line</sub> = V'/|Z<sub>line</sub> + Z'<sub>L</sub>| = <b>${fmt(I)} A</b><br>V'<sub>L</sub> = I·|Z'<sub>L</sub>| = ${fmt(VLp)} V ⇒ חוזרים דרך השנאי: V<sub>L</sub> = V'<sub>L</sub>/${a} = <b>${fmt(VL)} V</b><br>P<sub>loss</sub> = I²R<sub>line</sub> = <b>${fmt(Pl)} W</b> ← זרם קטן פי ${a} ⇒ הפסדים קטנים פי ${a * a}` : `מעגל טורי פשוט: I = V<sub>g</sub>/|Z<sub>line</sub> + Z<sub>L</sub>| = ${Vg}/${fmt(Cx.abs(Cx.add(Zl, ZL)))} = <b>${fmt(I)} A</b><br>V<sub>L</sub> = I·|Z<sub>L</sub>| = <b>${fmt(VL)} V</b> (${fmt(VL / Vg * 100)}% ממתח הגנרטור)<br>P<sub>loss</sub> = I²R<sub>line</sub> = <b>${fmt(Pl)} W</b>` };
+  } },
+  trOcSc: { group: 'tr', title: 'ניסוי ריקם וקצר: Rμ, Xμ, Rk, Xk (חד-פאזי)', gen(o = {}) {
+    const Voc = o.Voc ?? pick([2300, 7500, 8000]), Ioc = o.Ioc ?? pick([0.2, 0.21, 0.214, 0.25]), Poc = o.Poc ?? pick([50, 180, 300, 400]);
+    const Vsc = o.Vsc ?? pick([47, 120, 366, 489]), Isc = o.Isc ?? pick([2, 2.5, 6]), Psc = o.Psc ?? pick([160, 240, 300]);
+    const Rm = Voc * Voc / Poc, Ia = Voc / Rm; if (Ia >= Ioc) return this.gen(o);
+    const Im = sq(Ioc * Ioc - Ia * Ia), Xm = Voc / Im, Zk = Vsc / Isc, Rk = Psc / (Isc * Isc); if (Rk >= Zk) return this.gen(o);
+    const Xk = sq(Zk * Zk - Rk * Rk);
+    return { text: `בשנאי חד-פאזי בוצעו ניסויים (כל המדידות בצד הראשוני). ריקם: V<sub>oc</sub> = ${Voc} V, I<sub>oc</sub> = ${Ioc} A, P<sub>oc</sub> = ${Poc} W. קצר: V<sub>sc</sub> = ${Vsc} V, I<sub>sc</sub> = ${Isc} A, P<sub>sc</sub> = ${Psc} W. חשבו R<sub>μ</sub>, X<sub>μ</sub>, R<sub>K</sub> ו-X<sub>K</sub>.`,
+      parts: [{ label: 'R<sub>μ</sub>', ans: Rm / 1e3, unit: 'kΩ', units: U('kΩ', 'Ω', 'MΩ') }, { label: 'X<sub>μ</sub>', ans: Xm / 1e3, unit: 'kΩ', units: U('kΩ', 'Ω', 'MΩ') }, { label: 'R<sub>K</sub>', ans: Rk, unit: 'Ω', units: U('Ω', 'kΩ', 'mΩ') }, { label: 'X<sub>K</sub>', ans: Xk, unit: 'Ω', units: U('Ω', 'kΩ', 'mΩ') }],
+      sol: `<u>ריקם</u> – המשני פתוח, כמעט כל הזרם הולך לענף המגנוט. כל ההספק = הפסדי ברזל:<br>R<sub>μ</sub> = V<sub>oc</sub>²/P<sub>oc</sub> = <b>${fmt(Rm / 1e3)} kΩ</b>, I<sub>Rμ</sub> = V<sub>oc</sub>/R<sub>μ</sub> = ${fmt(Ia)} A<br>I<sub>μ</sub> = √(I<sub>oc</sub>² − I<sub>Rμ</sub>²) = ${fmt(Im)} A ⇒ X<sub>μ</sub> = V<sub>oc</sub>/I<sub>μ</sub> = <b>${fmt(Xm / 1e3)} kΩ</b><br><u>קצר</u> – מתח נמוך, זרם נקוב, ענף המגנוט זניח. כל ההספק = הפסדי נחושת:<br>Z<sub>K</sub> = V<sub>sc</sub>/I<sub>sc</sub> = ${fmt(Zk)} Ω, R<sub>K</sub> = P<sub>sc</sub>/I<sub>sc</sub>² = <b>${fmt(Rk)} Ω</b><br>X<sub>K</sub> = √(Z<sub>K</sub>² − R<sub>K</sub>²) = <b>${fmt(Xk)} Ω</b>` };
+  } },
+  trVR: { group: 'tr', title: 'ויסות מתח (VR) ונצילות לפי מעגל התמורה', gen(o = {}) {
+    const S = (o.S ?? pick([10, 15, 20, 25])) * 1e3, V2 = o.V2 ?? pick([230, 240, 277]), pf = o.pf ?? pick([0.8, 0.9, 1]), lead = o.lead ?? (pf < 1 && Math.random() < 0.3);
+    const Rk = o.Rk ?? pick([0.0445, 0.05, 0.08]), Xk = o.Xk ?? pick([0.0645, 0.08, 0.12]), Rm = o.Rm ?? pick([800, 1050, 1500]);
+    const I = S / V2, th = Math.acos(pf) * (lead ? 1 : -1), I2 = [I * Math.cos(th), I * Math.sin(th)];
+    const V1 = Cx.add([V2, 0], Cx.mul(I2, [Rk, Xk])), V1m = Cx.abs(V1), VR = (V1m - V2) / V2 * 100;
+    const Pout = S * pf, Pcu = I * I * Rk, Pfe = V1m * V1m / Rm, eta = Pout / (Pout + Pcu + Pfe) * 100;
+    return { text: `שנאי ${S / 1e3} kVA מספק לעומס מתח נקוב ${V2} V ב-pf = ${pf}${pf < 1 ? (lead ? ' מקדים' : ' מפגר') : ''}. מעגל התמורה מופנה לצד המשני: R'<sub>K</sub> = ${Rk} Ω, X'<sub>K</sub> = ${Xk} Ω, R'<sub>μ</sub> = ${Rm} Ω (ענף המגנוט בכניסה). חשבו את זרם העומס, את V<sub>1</sub>/a, את ויסות המתח VR ואת הנצילות.`,
+      parts: [{ label: 'I<sub>2</sub>', ans: I, unit: 'A', units: U('A', 'kA') }, { label: '|V<sub>1</sub>/a|', ans: V1m, unit: 'V', units: U('V', 'kV') }, { label: 'VR', ans: VR, unit: '%', units: U('%') }, { label: 'η', ans: eta, unit: '%', units: U('%') }],
+      sol: `I<sub>2</sub> = S/V<sub>2</sub> = <b>${fmt(I)} A</b>, ובזווית ${fmt(deg(th))}° (${lead ? 'מקדים' : pf < 1 ? 'מפגר' : 'באותה פאזה'})<br>KVL על המעגל: V<sub>1</sub>/a = V<sub>2</sub> + I<sub>2</sub>(R'<sub>K</sub> + jX'<sub>K</sub>) = ${V2} + ${pol(I2)}·(${Rk} + j${Xk}) = <b>${pol(V1)} V</b><br>VR = (V<sub>2,nl</sub> − V<sub>2,fl</sub>)/V<sub>2,fl</sub> = (${fmt(V1m, 5)} − ${V2})/${V2} = <b>${fmt(VR)}%</b>${VR < 0 ? ' ← שלילי: בעומס קיבולי המתח עולה!' : ''}<br>P<sub>cu</sub> = I²R'<sub>K</sub> = ${fmt(Pcu)} W, P<sub>Fe</sub> = |V<sub>1</sub>/a|²/R'<sub>μ</sub> = ${fmt(Pfe)} W, P<sub>out</sub> = S·pf = ${fmt(Pout)} W<br>η = P<sub>out</sub>/(P<sub>out</sub>+P<sub>cu</sub>+P<sub>Fe</sub>) = <b>${fmt(eta, 4)}%</b>` };
+  } },
+  imSpeed: { group: 'im', title: 'מהירות סינכרונית, החלקה ותדר הרוטור', gen(o = {}) {
+    const f = o.f ?? pick([50, 60]), p = o.p ?? pick([1, 2, 3, 4]), s = o.s ?? pick([0.02, 0.03, 0.035, 0.04, 0.05]);
+    const n1 = 60 * f / p, n = (1 - s) * n1, n2 = s * n1, f2 = s * f;
+    return { text: `מנוע השראה תלת-פאזי מוזן מרשת של ${f} Hz. למנוע ${p} זוגות קטבים, וההחלקה בעומס היא ${fmt(s * 100)}%. חשבו את מהירות השדה, את מהירות הרוטור, את מהירות ההחלקה ואת תדר הזרמים ברוטור.`,
+      parts: [{ label: 'n<sub>1</sub>', ans: n1, unit: 'rpm', units: U('rpm', 'rad/s', 'Hz') }, { label: 'n', ans: n, unit: 'rpm', units: U('rpm', 'rad/s', 'Hz') }, { label: 'n<sub>2</sub>', ans: n2, unit: 'rpm', units: U('rpm', 'rad/s', 'Hz') }, { label: 'f<sub>2</sub>', ans: f2, unit: 'Hz', units: U('Hz', 'rpm') }],
+      sol: `n<sub>1</sub> = 60f/p = 60·${f}/${p} = <b>${fmt(n1)} rpm</b> (p = מספר <u>זוגות</u> קטבים)<br>n = (1−s)n<sub>1</sub> = <b>${fmt(n, 4)} rpm</b><br>n<sub>2</sub> = n<sub>1</sub> − n = s·n<sub>1</sub> = <b>${fmt(n2)} rpm</b> ← כמה מהר השדה "עוקף" את הרוטור<br>f<sub>2</sub> = s·f = <b>${fmt(f2)} Hz</b>` };
+  } },
+  imFlow: { group: 'im', title: 'זרימת הספק: P1 → Pem → Pmech → P2', gen(o = {}) {
+    const P2 = (o.P2 ?? pick([15, 30, 50])) * 1e3, eta = o.eta ?? pick([0.86, 0.88, 0.9]), V = o.V ?? pick([380, 400]), pf = o.pf ?? pick([0.85, 0.87, 0.9]);
+    const R1 = o.R1 ?? pick([0.05, 0.07, 0.1]), PFe = (o.PFe ?? pick([0.8, 1, 1.5])) * 1e3, Pm = (o.Pm ?? pick([1, 1.5, 2])) * 1e3, f = o.f ?? 50, p = o.p ?? pick([2, 3]);
+    const P1 = P2 / eta, I1 = P1 / (sq(3) * V * pf), Pcu1 = 3 * I1 * I1 * R1, Pem = P1 - Pcu1 - PFe, Pmech = P2 + Pm, Pcu2 = Pem - Pmech, s = Pcu2 / Pem, n = (1 - s) * 60 * f / p;
+    if (s <= 0 || s > 0.1) return this.gen(o);
+    return { text: `מנוע השראה תלת-פאזי בכוכב: הספק מוצא ${P2 / 1e3} kW, נצילות ${eta * 100}%, V<sub>L</sub> = ${V} V, cosφ = ${pf}, ${f} Hz, ${p} זוגות קטבים. R<sub>1</sub> = ${R1} Ω, הפסדי ברזל ${PFe / 1e3} kW, הפסדים מכניים ${Pm / 1e3} kW. חשבו את זרם הקו, את ההספק האלקטרומגנטי, את ההחלקה ואת המהירות.`,
+      parts: [{ label: 'I<sub>1</sub>', ans: I1, unit: 'A', units: U('A', 'kA') }, { label: 'P<sub>em</sub>', ans: Pem / 1e3, unit: 'kW', units: U('kW', 'W', 'kVA') }, { label: 's', ans: s, unit: '' }, { label: 'n', ans: n, unit: 'rpm', units: U('rpm', 'rad/s') }],
+      sol: `P<sub>1</sub> = P<sub>2</sub>/η = ${fmt(P1 / 1e3)} kW ⇒ I<sub>1</sub> = P<sub>1</sub>/(√3V<sub>L</sub>cosφ) = <b>${fmt(I1)} A</b><br>ΔP<sub>cu1</sub> = 3I<sub>1</sub>²R<sub>1</sub> = ${fmt(Pcu1)} W<br>P<sub>em</sub> = P<sub>1</sub> − ΔP<sub>cu1</sub> − ΔP<sub>Fe</sub> = <b>${fmt(Pem / 1e3)} kW</b> (ההספק שעובר בחריץ לרוטור)<br>P<sub>mech</sub> = P<sub>2</sub> + ΔP<sub>mech</sub> = ${fmt(Pmech / 1e3)} kW ⇒ ΔP<sub>cu2</sub> = P<sub>em</sub> − P<sub>mech</sub> = ${fmt(Pcu2)} W<br>ΔP<sub>cu2</sub> = s·P<sub>em</sub> ⇒ s = <b>${fmt(s)}</b><br>n<sub>1</sub> = 60f/p = ${60 * f / p} ⇒ n = (1−s)n<sub>1</sub> = <b>${fmt(n, 4)} rpm</b>` };
+  } },
+  imTorque: { group: 'im', title: 'עקומת מומנט: Tst, Tmax ו-scr ממעגל התמורה', gen(o = {}) {
+    const V = o.V ?? pick([100, 220, 230, 265.6]), R1 = o.R1 ?? pick([0.1, 0.2, 0.3]), Xk = o.Xk ?? pick([0.35, 0.6, 0.8, 1]), R2 = o.R2 ?? pick([0.07, 0.15, 0.2, 0.3]), f = o.f ?? 50, p = o.p ?? 2;
+    const ws = 2 * Math.PI * f / p, rt = sq(R1 * R1 + Xk * Xk), scr = R2 / rt, Tmax = 3 * V * V / (2 * ws * (R1 + rt)), Tst = 3 * V * V * R2 / (ws * ((R1 + R2) ** 2 + Xk * Xk));
+    return { text: `מנוע השראה תלת-פאזי, מתח פאזה ${V} V, ${f} Hz, ${p} זוגות קטבים. R<sub>1</sub> = ${R1} Ω, R'<sub>2</sub> = ${R2} Ω, X<sub>K</sub> = X<sub>1</sub> + X'<sub>20</sub> = ${Xk} Ω (הזניחו את ענף המגנוט). חשבו את ההחלקה הקריטית, את המומנט המקסימלי ואת מומנט ההתנעה.`,
+      parts: [{ label: 's<sub>cr</sub>', ans: scr, unit: '' }, { label: 'T<sub>max</sub>', ans: Tmax, unit: 'N·m', units: U('N·m', 'W', 'kN·m') }, { label: 'T<sub>st</sub>', ans: Tst, unit: 'N·m', units: U('N·m', 'W', 'kN·m') }],
+      sol: `ω<sub>s</sub> = 2πf/p = ${fmt(ws)} rad/s<br>T(s) = (3V²/ω<sub>s</sub>)·(R'<sub>2</sub>/s) / [(R<sub>1</sub> + R'<sub>2</sub>/s)² + X<sub>K</sub>²]<br>dT/ds = 0 ⇒ s<sub>cr</sub> = R'<sub>2</sub>/√(R<sub>1</sub>² + X<sub>K</sub>²) = <b>${fmt(scr)}</b><br>T<sub>max</sub> = 3V²/(2ω<sub>s</sub>[R<sub>1</sub> + √(R<sub>1</sub>² + X<sub>K</sub>²)]) = <b>${fmt(Tmax)} N·m</b> (לא תלוי ב-R'<sub>2</sub>!)<br>התנעה, s = 1: T<sub>st</sub> = 3V²R'<sub>2</sub>/(ω<sub>s</sub>[(R<sub>1</sub>+R'<sub>2</sub>)² + X<sub>K</sub>²]) = <b>${fmt(Tst)} N·m</b>` };
+  } },
+});
+// learning order: fundamentals first, in lecture order
+energy.groups = { ac: energy.groups.ac, three: energy.groups.three, mag: energy.groups.mag, tr: 'שנאים (שיעורים 7–9, תרגיל 3)', im: 'מנוע השראה (שיעורים 10–12, תרגיל 4)', dc: 'DC וסינכרוני (ממבחני עבר)' };
+energy.topics = Object.fromEntries(['acSeries', 'powerTri', 'threeY', 'threeDelta', 'threePower', 'magGap', 'toroidGap', 'trIdeal', 'trOcSc', 'trVR', 'equiv', 'trLoad', 'regulation', 'trTests', 'parallel',
+  'imSpeed', 'imFlow', 'imTorque', 'imCircuit', 'induction', 'inductionLoad', 'rotorRes', 'dcSelf', 'dcParallel', 'synch'].map(k => [k, energy.topics[k]]));
+
 const COURSES = {
   semi, energy,
   signals: { name: 'אותות אקראיים', soon: true },
@@ -408,6 +565,11 @@ function plot(box, o) {
     dot(x, y, label, cls = 'c2', dx = 6, dy = -6) { P.el('circle', { cx: P.X(x), cy: P.Y(y), r: 4, class: 'pt ' + cls }); if (label) P.el('text', { x: P.X(x) + dx, y: P.Y(y) + dy, class: 'lbl ' + cls }, label); },
     hline(y, label, cls = 'c3') { P.el('line', { x1: P.X(o.x[0]), x2: P.X(o.x[1]), y1: P.Y(y), y2: P.Y(y), class: 'dash ' + cls }); if (label) P.el('text', { x: P.X(o.x[1]) - 4, y: P.Y(y) - 4, class: 'lbl ' + cls, 'text-anchor': 'end' }, label); },
     vline(x, label, cls = 'c3') { P.el('line', { x1: P.X(x), x2: P.X(x), y1: P.Y(o.y[0]), y2: P.Y(o.y[1]), class: 'dash ' + cls }); if (label) P.el('text', { x: P.X(x) + 4, y: T + 12, class: 'lbl ' + cls }, label); },
+    arrow(x1, y1, x2, y2, cls = 'c1', label, dx = 4, dy = -4) { const X1 = P.X(x1), Y1 = P.Y(y1), X2 = P.X(x2), Y2 = P.Y(y2), a = Math.atan2(Y2 - Y1, X2 - X1), h = 7;
+      if (Math.hypot(X2 - X1, Y2 - Y1) < 1) return; P.el('line', { x1: X1, y1: Y1, x2: X2, y2: Y2, class: 'ln ' + cls });
+      P.el('polygon', { points: `${X2},${Y2} ${X2 - h * Math.cos(a - 0.4)},${Y2 - h * Math.sin(a - 0.4)} ${X2 - h * Math.cos(a + 0.4)},${Y2 - h * Math.sin(a + 0.4)}`, class: 'pt ' + cls });
+      if (label) P.el('text', { x: X2 + dx, y: Y2 + dy, class: 'lbl ' + cls }, label); },
+    rect(x, y, w, h, cls = 'bar b0') { P.el('rect', { x: P.X(x), y: P.Y(y + h), width: Math.max(0, P.X(x + w) - P.X(x)), height: Math.max(0, P.Y(y) - P.Y(y + h)), class: cls }); },
     area(f, a, b, cls = 'c1') { const pts = []; for (let i = 0; i <= 60; i++) { const x = a + (b - a) * i / 60; pts.push(`${P.X(x)},${P.Y(Math.min(o.y[1], f(x)))}`); } P.el('polygon', { points: `${P.X(a)},${P.Y(o.y[0])} ${pts.join(' ')} ${P.X(b)},${P.Y(o.y[0])}`, class: 'fill ' + cls }); },
   };
   function axes() {
@@ -949,7 +1111,7 @@ const STRATEGY = {
 // Wrap every run of Latin/math inside Hebrew text in <bdi dir=ltr>, so formulas keep their order in RTL lines.
 const HEB = /[א-ת]/;
 function isolateMath(root) {
-  root.querySelectorAll('p, li, td, th, h1, h3, .readout, .q, .topic span, .choice span, .sliders span, .part label').forEach(el => { if (!el.closest('.f, svg, bdi')) fixEl(el); });
+  root.querySelectorAll('p, li, td, th, h1, h3, .readout, .q, .topic span, .choice span, .sliders span, .part label, .sym b, .sym span, .sym em').forEach(el => { if (!el.closest('.f, svg, bdi')) fixEl(el); });
   if (root.matches?.('.readout')) fixEl(root);
 }
 function fixEl(el) {
@@ -1448,6 +1610,544 @@ Lg.invariance = {
   exam: 'שאלות "מה משתנה כש…" מתאימות במיוחד למבחן אמריקאי.',
 };
 
+// ---------------- המרת אנרגיה: שיעורים למתחילים ----------------
+// Each lesson adds: simple (plain words + analogy), pic (SVG diagram), sym ([symbol, meaning, unit]), quiz ([{q, o, a, why}]).
+// Notation follows Dr. Arbel's lectures: a = N1/N2, Rμ/Xμ (magnetizing branch), RK/XK (short-circuit), p = pole PAIRS, n1 = 60f/p.
+
+// ---- schematic primitives: each returns an SVG string ----
+const sv = (w, h, s) => `<svg class="sch" viewBox="0 0 ${w} ${h}">${s}</svg>`;
+const pts = p => p.map(q => q.join(',')).join(' ');
+const W = (...p) => `<polyline class="w" points="${pts(p)}"/>`;
+const T = (x, y, t, c = '', a = 'middle') => `<text x="${x}" y="${y}" class="${c}" text-anchor="${a}">${t}</text>`;
+const sbs = (m, s) => `${m}<tspan dy="3" font-size="8">${s}</tspan><tspan dy="-3"> </tspan>`;   // subscript inside SVG text
+const Dot = (x, y) => `<circle cx="${x}" cy="${y}" r="2.6" class="dt"/>`;
+function Rh(x1, y, x2, lab, c = 'w') { const m = (x1 + x2) / 2, z = [[x1, y], [m - 15, y]]; for (let i = 0; i < 6; i++) z.push([m - 12.5 + i * 5, y + (i % 2 ? 6 : -6)]); z.push([m + 15, y], [x2, y]); return `<polyline class="${c}" points="${pts(z)}"/>` + (lab ? T(m, y - 10, lab) : ''); }
+function Rv(x, y1, y2, lab, c = 'w') { const m = (y1 + y2) / 2, z = [[x, y1], [x, m - 15]]; for (let i = 0; i < 6; i++) z.push([x + (i % 2 ? 6 : -6), m - 12.5 + i * 5]); z.push([x, m + 15], [x, y2]); return `<polyline class="${c}" points="${pts(z)}"/>` + (lab ? T(x + 10, m + 4, lab, '', 'start') : ''); }
+function Lh(x1, y, x2, lab, c = 'w') { const m = (x1 + x2) / 2; return `<path class="${c}" d="M${x1} ${y}H${m - 16}a4 4 0 0 1 8 0a4 4 0 0 1 8 0a4 4 0 0 1 8 0a4 4 0 0 1 8 0H${x2}"/>` + (lab ? T(m, y - 10, lab) : ''); }
+function Lv(x, y1, y2, lab, c = 'w') { const m = (y1 + y2) / 2; return `<path class="${c}" d="M${x} ${y1}V${m - 16}a4 4 0 0 1 0 8a4 4 0 0 1 0 8a4 4 0 0 1 0 8a4 4 0 0 1 0 8V${y2}"/>` + (lab ? T(x + 10, m + 4, lab, '', 'start') : ''); }
+function Ch(x1, y, x2, lab, c = 'w') { const m = (x1 + x2) / 2; return W([x1, y], [m - 3, y]) + W([m + 3, y], [x2, y]) + `<path class="${c}" d="M${m - 3} ${y - 9}V${y + 9}M${m + 3} ${y - 9}V${y + 9}"/>` + (lab ? T(m, y - 13, lab) : ''); }
+function Src(x, y, lab, side = 'start') { return `<circle cx="${x}" cy="${y}" r="13" class="src"/><path class="w" d="M${x - 7} ${y}q3.5 -7 7 0t7 0"/>` + (lab ? T(side === 'start' ? x + 18 : x - 18, y + 4, lab, '', side) : ''); }
+function Arr(x1, y1, x2, y2, lab, c = 'h', lc = 'a') { const a = Math.atan2(y2 - y1, x2 - x1), h = 7; return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${c}"/><polygon class="${c === 'h2' ? 'fl2' : 'fl'}" points="${x2},${y2} ${x2 - h * Math.cos(a - 0.4)},${y2 - h * Math.sin(a - 0.4)} ${x2 - h * Math.cos(a + 0.4)},${y2 - h * Math.sin(a + 0.4)}"/>` + (lab ? T(x2 + (x2 >= x1 ? 4 : -4), y2 - 5, lab, lc, x2 >= x1 ? 'start' : 'end') : ''); }
+// Approximate transformer equivalent circuit (Rμ‖Xμ at the input, RK+jXK in series). hl: 'oc' | 'sc' | ''
+function picTrEq(hl = '', note = '') {
+  const sh = hl === 'oc' ? 'h' : 'w', se = hl === 'sc' ? 'h' : 'w';
+  return sv(340, 150, W([20, 30], [320, 30]) + W([20, 120], [320, 120]) +
+    W([90, 30], [90, 52]) + Rv(90, 52, 98, '', sh) + W([90, 98], [90, 120]) + W([90, 52], [130, 52]) + Lv(130, 52, 98, '', sh) + W([130, 98], [90, 98]) +
+    `<rect x="160" y="18" width="150" height="24" class="gapf"/>` + Rh(160, 30, 225, '', se) + Lh(225, 30, 300, '', se) + W([300, 30], [320, 30]) +
+    T(78, 79, sbs('R', 'μ'), sh === 'h' ? 'a' : '', 'end') + T(142, 79, sbs('X', 'μ'), sh === 'h' ? 'a' : '', 'start') + T(192, 16, sbs('R', 'K'), se === 'h' ? 'a' : '') + T(262, 16, sbs('X', 'K'), se === 'h' ? 'a' : '') +
+    T(16, 80, sbs('V', '1'), '', 'end') + T(328, 80, "V₂' = aV₂", '', 'end') + Dot(20, 30) + Dot(20, 120) + Dot(320, 30) + Dot(320, 120) +
+    T(110, 143, 'ענף המגנוט (ברזל)', 'm') + T(240, 143, 'ענף טורי (נחושת + זליגה)', 'm') + (note ? T(170, 66, note, 'a') : ''));
+}
+// Induction motor per-phase equivalent circuit
+function picImEq(note = '') {
+  return sv(340, 150, W([14, 30], [326, 30]) + W([14, 120], [326, 120]) + Rh(24, 30, 74, sbs('R', '1')) + Lh(74, 30, 124, sbs('X', '1')) +
+    W([140, 30], [140, 52]) + Rv(140, 52, 98) + W([140, 98], [140, 120]) + W([140, 52], [176, 52]) + Lv(176, 52, 98) + W([176, 98], [140, 98]) + T(128, 79, sbs('R', 'μ'), '', 'end') + T(188, 79, sbs('X', 'μ'), '', 'start') +
+    `<rect x="200" y="18" width="126" height="24" class="gapf"/>` + Lh(200, 30, 256, "X'₂₀") + W([256, 30], [300, 30]) + W([300, 30], [300, 52]) + Rv(300, 52, 98, '', 'h') + W([300, 98], [300, 120]) +
+    T(292, 70, "R'₂/s", 'a', 'end') + T(292, 84, '(תלוי מהירות)', 'm', 'end') + Dot(14, 30) + Dot(14, 120) + T(10, 80, sbs('V', '1'), '', 'end') + Arr(40, 44, 64, 44, sbs('I', '1'), 'h2', 'c') + Arr(220, 44, 244, 44, "I'₂", 'h2', 'c') +
+    T(80, 143, 'סטטור', 'm') + T(160, 143, 'מגנוט', 'm') + T(270, 143, 'רוטור (מופנה לסטטור)', 'm') + (note ? T(170, 12, note, 'a') : ''));
+}
+const picPowerTri = sv(340, 150, `<polygon points="40,125 260,125 260,30" fill="rgba(242,184,75,.08)" stroke="none"/>` + Arr(40, 125, 258, 125, '', 'h2') + Arr(260, 125, 260, 32, '', 'h') + Arr(40, 125, 256, 32, '', 'h') +
+  T(150, 142, 'P [W] – הספק ממשי: עבודה אמיתית', 'c') + T(268, 82, 'Q [VAR]', 'a', 'start') + T(268, 96, 'הלוך-חזור', 'm', 'start') + T(132, 70, '|S| [VA]', 'a', 'end') + T(132, 84, 'מה שהרשת מספקת', 'm', 'end') +
+  `<path class="w" d="M80 125a40 40 0 0 0 -3 -15"/>` + T(90, 118, 'θ', '', 'start') + T(40, 20, 'pf = cosθ = P/|S|', 'a', 'start'));
+
+// ---------- 1. phasors / impedance ----------
+Le.acSeries = {
+  simple: `<p>ברשת החשמל המתח והזרם הם גלי סינוס. במקום לצייר גלים מציירים <b>פאזור</b>: חץ שאורכו הוא גודל הגל וזווית החץ אומרת "מתי" הגל מגיע לשיא.</p>
+<p><b>נגד</b> לא משנה את התזמון: הזרם והמתח עולים יחד. <b>סליל</b> מתנגד לשינוי זרם, ולכן הזרם בו <b>מאחר</b> ברבע מחזור (90°). <b>קבל</b> צריך להיטען לפני שיש עליו מתח, ולכן הזרם בו <b>מקדים</b> ב-90°.</p>
+<p class="ana">🚲 אנלוגיה: נגד הוא חיכוך, הוא פשוט מבזבז. סליל הוא גלגל תנופה כבד: קשה להתניע אותו וקשה לעצור אותו. קבל הוא קפיץ שאוגר ומחזיר.</p>
+<p>העכבה <b>Z = R + jX</b> מאחדת את שלושתם במספר מרוכב אחד. החלק הממשי מבזבז אנרגיה, והחלק המדומה רק מזיז את הזרם בזמן.</p>`,
+  pic: sv(340, 130, Src(30, 70, '', 'start') + W([30, 57], [30, 25], [60, 25]) + Rh(60, 25, 130, 'R') + Lh(130, 25, 210, 'L ⇒ X<tspan dy="3" font-size="8">L</tspan><tspan dy="-3">=ωL</tspan>') + Ch(210, 25, 290, 'C ⇒ X꜀=1/ωC') + W([290, 25], [310, 25], [310, 115], [30, 115], [30, 83]) +
+    Arr(70, 40, 110, 40, 'I', 'h2', 'c') + T(60, 74, 'v(t)', '', 'start') + T(170, 100, 'Z = R + j(X<tspan dy="3" font-size="8">L</tspan><tspan dy="-3"> − X꜀)</tspan>', 'a')),
+  sym: [['Z', 'עכבה – "ההתנגדות" הכוללת ל-AC, מספר מרוכב', 'Ω'], ['R', 'התנגדות – החלק שהופך אנרגיה לחום', 'Ω'], ['X<sub>L</sub>', 'ריאקטנס של סליל = ωL', 'Ω'], ['X<sub>C</sub>', 'ריאקטנס של קבל = 1/(ωC)', 'Ω'],
+    ['ω', 'תדר זוויתי = 2πf. ברשת של 50Hz: ω = 314', 'rad/s'], ['φ', 'זווית המופע בין המתח לזרם. חיובית = השראי (הזרם מאחר)', '°'], ['j', 'היחידה המדומה, √−1. כפל ב-j = סיבוב ב-90°', '—'],
+    ['V<sub>m</sub> / V<sub>rms</sub>', 'משרעת (שיא) / ערך אפקטיבי. V<sub>rms</sub> = V<sub>m</sub>/√2', 'V']],
+  intro: 'עובדים עם פאזורים: מחברים עכבות כמו נגדים, ומחשבים זרם בחוק אוהם, רק עם מספרים מרוכבים.',
+  body: `<p class="f">X<sub>L</sub> = ωL · X<sub>C</sub> = 1/(ωC) · Z = R + j(X<sub>L</sub> − X<sub>C</sub>)</p>
+<p class="f">|Z| = √(R² + X²) · φ = arctan(X/R) · I = V/Z</p>
+<p><b>מעבר בין צורות:</b> קרטזית a + jb ⇄ קוטבית r∠θ (r = √(a²+b²), θ = arctan(b/a)). כפל וחילוק נוחים בקוטבית: גדלים מוכפלים, וזוויות מתחברות או מתחסרות.</p>
+<p>בטור: Z<sub>T</sub> = Z<sub>1</sub> + Z<sub>2</sub>. במקביל: 1/Z<sub>T</sub> = 1/Z<sub>1</sub> + 1/Z<sub>2</sub>. בדיוק כמו בנגדים.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-10, 100], y: [-45, 70], xl: 'Re', yl: 'Im', xt: [[0, '0'], [50, '50'], [100, '100']], yt: [[-40, '−40'], [0, '0'], [40, '40']] });
+    sliders(box, [{ k: 'R', label: 'R Ω', min: 5, max: 80, step: 1, v: 40 }, { k: 'XL', label: 'X<sub>L</sub> Ω', min: 0, max: 60, step: 1, v: 30 }, { k: 'XC', label: 'X<sub>C</sub> Ω', min: 0, max: 60, step: 1, v: 0 }], v => {
+      P.clear(); const X = v.XL - v.XC, Z = Math.hypot(v.R, X), ph = Math.atan2(X, v.R) * 180 / Math.PI;
+      P.arrow(0, 0, v.R, 0, 'c2', 'R'); P.arrow(v.R, 0, v.R, v.XL, 'c3', 'jX_L'); P.arrow(v.R, v.XL, v.R, X, 'c5', '−jX_C', 4, 12); P.arrow(0, 0, v.R, X, 'c1', 'Z', -16, -6);
+      return `|Z| = ${fmt(Z)}Ω, φ = ${fmt(ph)}° ⇒ ${ph > 1 ? 'השראי: הזרם מאחר אחרי המתח' : ph < -1 ? 'קיבולי: הזרם מקדים את המתח' : 'כמעט התנגדותי: X<sub>L</sub> ≈ X<sub>C</sub> (תהודה)'}<br>עם V = 100V: I = ${fmt(100 / Z)}A`;
+    });
+  },
+  ex: { src: 'תרגיל 0, שאלה 1', inputs: { R: 40, L: 95.54, C: null, w: 314, Vm: 100 } },
+  quiz: [{ q: 'במעגל עם סליל ונגד בטור, איך הזרם ביחס למתח המקור?', o: ['מאחר (φ > 0)', 'מקדים (φ < 0)', 'באותה פאזה', 'תלוי רק ב-R'], a: 0, why: 'הסליל מוסיף +jX ⇒ זווית Z חיובית ⇒ הזרם I = V/Z מאחר בזווית הזו.' },
+    { q: 'מה קורה ל-X<sub>L</sub> אם מכפילים את התדר?', o: ['גדל פי 2', 'קטן פי 2', 'לא משתנה', 'גדל פי 4'], a: 0, why: 'הריאקטנס יחסי לתדר: X<sub>L</sub> = ωL. (X<sub>C</sub> לעומתו קטן פי 2.)' },
+    { q: 'Z = 30 + j40 Ω. מה |Z|?', o: ['50 Ω', '70 Ω', '10 Ω', '35 Ω'], a: 0, why: '√(30² + 40²) = 50. משולש 3-4-5.' }],
+  traps: ['לחבר גדלים |Z<sub>1</sub>| + |Z<sub>2</sub>| במקום לחבר מספרים מרוכבים.', 'לשכוח להמיר mH ל-H ו-µF ל-F.', 'לבלבל בין משרעת לערך אפקטיבי (√2).'],
+  exam: 'כמעט כל שאלה בקורס מתחילה מחישוב זרם מעכבה מרוכבת. זה הכלי הבסיסי.',
+};
+
+// ---------- 2. complex power & pf correction ----------
+Le.powerTri = {
+  simple: `<p>לא כל הזרם שזורם ברשת עושה עבודה. חלק ממנו רק "מתנדנד" הלוך-חזור כדי למגנט סלילים (מנועים, שנאים). לכן יש שלושה הספקים:</p>
+<p><b>P</b> <b>הספק ממשי</b> [W]: מה שבאמת הופך לחום או לתנועה. <b>Q</b> <b>הספק ריאקטיבי</b> [VAR]: האנרגיה שנאגרת ומוחזרת בכל מחזור. <b>S</b> <b>הספק מדומה</b> [VA]: מה שהרשת צריכה לספק בפועל, והוא קובע את עובי הכבלים.</p>
+<p class="ana">🍺 אנלוגיה: כוס בירה. P הוא הבירה, Q הוא הקצף, ו-S היא הכוס כולה. משלמים על הבירה, אבל הכוס צריכה להכיל גם את הקצף.</p>
+<p><b>מקדם הספק pf = cosθ = P/|S|</b> אומר כמה מהזרם "שימושי". pf נמוך פירושו זרם גדול סתם. לכן מחברים קבלים: הקבל מספק Q הפוך לזה של הסלילים, וכך מבטל אותו.</p>`,
+  pic: picPowerTri,
+  sym: [['S', 'הספק מרוכב (מדומה) = P + jQ = V·I*', 'VA'], ['P', 'הספק ממשי = |S|cosθ', 'W'], ['Q', 'הספק ריאקטיבי = |S|sinθ. חיובי = השראי, שלילי = קיבולי', 'VAR'],
+    ['pf', 'מקדם הספק = cosθ. "מאחר" (lagging) = השראי, "מקדים" (leading) = קיבולי', '—'], ['θ', 'זווית העכבה = הזווית בין המתח לזרם', '°'], ['I*', 'הצמוד של הזרם (הופכים את סימן הזווית)', 'A'],
+    ['Q<sub>C</sub>', 'ההספק הריאקטיבי שהקבלים צריכים לספק', 'VAR'], ['C', 'קיבול הקבל', 'F']],
+  intro: 'מחברים הספקים מרוכבים של עומסים (S<sub>T</sub> = S<sub>1</sub> + S<sub>2</sub>), ומשם יוצאים pf וזרם הקו.',
+  body: `<p class="f">S = V·I* = P + jQ · |S| = √(P² + Q²) · pf = cosθ = P/|S|</p>
+<p class="f">תלת-פאזי: S = 3V<sub>p</sub>I<sub>p</sub>* · P = √3V<sub>L</sub>I<sub>L</sub>cosθ · Q = √3V<sub>L</sub>I<sub>L</sub>sinθ</p>
+<p><b>תיקון מקדם הספק:</b> ה-P לא משתנה, רק Q יורד:</p>
+<p class="f">Q<sub>C</sub> = P(tanθ<sub>old</sub> − tanθ<sub>new</sub>) · Q<sub>C</sub> = V²ωC ⇒ C = Q<sub>C</sub>/(ωV²)</p>
+<p>בקבלים במשולש כל קבל מקבל Q<sub>C</sub>/3 על מתח הקו.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 120], y: [-10, 110], xl: 'P [kW]', yl: 'Q [kVAR]', xt: [[0, '0'], [50, '50'], [100, '100']], yt: [[0, '0'], [50, '50'], [100, '100']] });
+    sliders(box, [{ k: 'P', label: 'P kW', min: 20, max: 110, step: 1, v: 90 }, { k: 'pf', label: 'pf לפני', min: 0.5, max: 1, step: 0.01, v: 0.73 }, { k: 'qc', label: 'Q<sub>C</sub> kVAR', min: 0, max: 100, step: 1, v: 0 }], v => {
+      P.clear(); const Q = v.P * Math.tan(Math.acos(v.pf)), Q2 = Q - v.qc, S1 = Math.hypot(v.P, Q), S2 = Math.hypot(v.P, Q2), pf2 = v.P / S2;
+      P.arrow(0, 0, v.P, 0, 'c2', 'P'); P.arrow(v.P, 0, v.P, Q, 'c3', 'Q', 4, 0); P.arrow(0, 0, v.P, Q, 'c3', '', 0, 0);
+      if (v.qc) { P.arrow(v.P, Q, v.P, Q2, 'c5', '−Q_C', 4, 10); P.arrow(0, 0, v.P, Q2, 'c1', 'S חדש', -60, -4); }
+      return `לפני: |S| = ${fmt(S1)} kVA, pf = ${fmt(v.pf)}<br>${v.qc ? `אחרי: |S| = ${fmt(S2)} kVA, pf = ${fmt(pf2)} ${Q2 < 0 ? '⚠ תיקון יתר – עכשיו קיבולי' : ''}<br>הזרם ירד ב-${fmt((1 - S2 / S1) * 100)}% – אותו P, פחות זרם!` : 'הזז את Q<sub>C</sub> כדי להוסיף קבלים'}`;
+    });
+  },
+  ex: { src: 'שיעור 5, דוגמה 13', inputs: { P1: 30, pf1: 0.6, Q2: 45, pf2: 0.8, pt: 0.9, VL: 240, f: 60 } },
+  quiz: [{ q: 'מוסיפים קבלים לתיקון pf. מה קורה ל-P?', o: ['לא משתנה', 'יורד', 'עולה', 'מתאפס'], a: 0, why: 'קבל אידיאלי לא צורך הספק ממשי. רק Q ו-|S| (ולכן הזרם) יורדים.' },
+    { q: 'עומס 4 kW עם pf = 0.8 מפגר. מה Q?', o: ['3 kVAR', '5 kVAR', '3.2 kVAR', '4 kVAR'], a: 0, why: '|S| = 4/0.8 = 5 kVA, Q = √(5² − 4²) = 3. שוב משולש 3-4-5.' },
+    { q: 'מה המשמעות של pf "מקדים"?', o: ['עומס קיבולי, Q < 0', 'עומס השראי, Q > 0', 'עומס התנגדותי', 'מנוע בעומס יתר'], a: 0, why: 'בעומס קיבולי הזרם מקדים את המתח, וההספק הריאקטיבי שלילי.' }],
+  traps: ['לחבר |S<sub>1</sub>| + |S<sub>2</sub>| – צריך לחבר P לחוד ו-Q לחוד.', 'לשכוח את הצמוד: S = VI*, ולא VI.', 'בתיקון pf: להשתמש ב-θ של היעד גם במקום θ הנוכחי.'],
+  exam: 'מופיע כסעיף בשאלות תלת-פאזי: הספק כולל, pf, וקבלים לתיקון.',
+};
+
+// ---------- 3. three-phase Y ----------
+const picY = sv(340, 160, Src(60, 40, '') + Src(60, 120, '') + Src(110, 80, '') + W([60, 53], [60, 80], [97, 80]) + W([60, 107], [60, 80]) + Dot(60, 80) + T(48, 84, 'n', 'm', 'end') +
+  W([60, 27], [60, 15], [300, 15]) + W([60, 133], [60, 145], [300, 145]) + W([123, 80], [300, 80]) + T(310, 19, 'a', 'a') + T(310, 84, 'b', 'a') + T(310, 149, 'c', 'a') +
+  W([300, 15], [300, 22]) + Arr(255, 20, 255, 76, '', 'h2') + T(262, 52, sbs('V', 'L') + ' = ' + sbs('V', 'ab'), 'c', 'start') + Arr(22, 78, 22, 20, '', 'h') + T(18, 52, sbs('V', 'p'), 'a', 'end') +
+  T(160, 70, '120° בין הפאזות', 'm') + T(170, 108, sbs('V', 'L') + ' = √3·' + sbs('V', 'p') + ' , ' + sbs('I', 'L') + ' = ' + sbs('I', 'p'), 'a') + T(85, 13, 'מקור בכוכב', 'm'));
+Le.threeY = {
+  simple: `<p>במקום מקור אחד יש <b>שלושה מקורות זהים</b>, כל אחד מוזז ב-120° מהקודם. זה נותן הספק קבוע בזמן ומאפשר לייצר <b>שדה מסתובב</b>, שהוא הבסיס של כל מנוע.</p>
+<p>ב<b>כוכב (Y)</b> שלושת המקורות מחוברים לנקודה משותפת אחת, האפס (n). יש שני סוגי מתח: <b>מתח פאזה V<sub>p</sub></b> בין קו לאפס, ו<b>מתח קו V<sub>L</sub></b> בין שני קווים.</p>
+<p class="ana">🔺 מתח הקו הוא הפרש של שני חצים באורך V<sub>p</sub> שביניהם 120°. גאומטרית ההפרש יוצא ארוך פי √3 ≈ 1.73 ומסובב ב-30°. לכן בבית יש 230V בין פאזה לאפס ו-400V בין שתי פאזות.</p>
+<p>בכוכב הזרם בקו הוא אותו זרם שעובר בפאזה, כי אין לו לאן להתפצל.</p>`,
+  pic: picY,
+  sym: [['V<sub>p</sub>', 'מתח פאזה – בין קו לנקודת האפס', 'V'], ['V<sub>L</sub>', 'מתח קו – בין שני קווים (מה שבדרך כלל "נתון")', 'V'], ['I<sub>L</sub>, I<sub>p</sub>', 'זרם קו / זרם פאזה. בכוכב הם שווים', 'A'],
+    ['n', 'נקודת האפס (ניוטרל). בעומס מאוזן לא זורם בה זרם', '—'], ['√3', 'היחס בין מתח קו למתח פאזה בכוכב, ≈ 1.732', '—'], ['a, b, c', 'שמות שלושת הקווים (הפאזות)', '—'], ['Z<sub>Y</sub>', 'עכבת עומס לפאזה בחיבור כוכב', 'Ω']],
+  intro: 'בעומס מאוזן פותרים פאזה אחת, כאילו זה מעגל חד-פאזי, ומכפילים ב-3 את ההספק.',
+  body: `<p class="f">V<sub>an</sub> = V<sub>p</sub>∠0° · V<sub>bn</sub> = V<sub>p</sub>∠−120° · V<sub>cn</sub> = V<sub>p</sub>∠+120°</p>
+<p class="f">V<sub>ab</sub> = √3·V<sub>p</sub>∠+30° · I<sub>L</sub> = I<sub>p</sub> = V<sub>p</sub>/Z<sub>Y</sub></p>
+<p class="f">P = 3V<sub>p</sub>I<sub>p</sub>cosθ = √3V<sub>L</sub>I<sub>L</sub>cosθ</p>
+<p><b>שלבים:</b></p><ol><li>מתח קו נתון ⇒ V<sub>p</sub> = V<sub>L</sub>/√3.</li><li>זרם: I = V<sub>p</sub>/Z (גודל וזווית).</li><li>הספק: פעם אחת לפאזה, ואז כפול 3.</li></ol>
+<p>ביטוי רגעי: v(t) = V<sub>m</sub>cos(ωt + θ), כאשר V<sub>m</sub> = √2·V<sub>rms</sub>.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-1.9, 1.9], y: [-1.2, 1.2], xl: '', yl: '', xt: [], yt: [] });
+    sliders(box, [{ k: 'th', label: 'זווית עומס θ°', min: -60, max: 60, step: 1, v: 30 }, { k: 'L', label: 'מתחי קו (0/1)', min: 0, max: 1, step: 1, v: 1 }], v => {
+      P.clear(); const pol = (r, d) => [r * Math.cos(d * Math.PI / 180), r * Math.sin(d * Math.PI / 180)];
+      [['a', 0], ['b', -120], ['c', 120]].forEach(([n, d]) => { const [x, y] = pol(1, d), [ix, iy] = pol(0.6, d - v.th); P.arrow(0, 0, x, y, 'c1', 'V' + n); P.arrow(0, 0, ix, iy, 'c2', 'I' + n, 4, 10); });
+      if (v.L) { const a = pol(1, 0), b = pol(1, -120); P.arrow(b[0], b[1], a[0], a[1], 'c5', 'Vab', 6, 16); }
+      return `כתום = מתחי פאזה, טורקיז = זרמים (מאחרים ב-θ = ${v.th}°)<br>${v.L ? '|V<sub>ab</sub>| = √3·|V<sub>a</sub>| = 1.732, ומקדים ב-30°' : 'הדלק מתחי קו כדי לראות את V<sub>ab</sub>'}`;
+    });
+  },
+  ex: { src: 'תרגיל 1, שאלה 2', inputs: { VL: 440, Zm: 40, th: 30 } },
+  quiz: [{ q: 'מתח הקו ברשת הוא 400V. מה מתח הפאזה בכוכב?', o: ['231 V', '400 V', '693 V', '133 V'], a: 0, why: '400/√3 = 230.9 V.' },
+    { q: 'בעומס מאוזן בכוכב, מה הזרם באפס?', o: ['0', 'I<sub>L</sub>', '3I<sub>L</sub>', '√3I<sub>L</sub>'], a: 0, why: 'שלושה זרמים שווים במרווח של 120° מתקזזים לאפס.' },
+    { q: 'V<sub>an</sub> = 120∠32°. מה V<sub>ab</sub> (רצף חיובי)?', o: ['207.8∠62°', '120∠62°', '207.8∠2°', '69.3∠62°'], a: 0, why: 'V<sub>ab</sub> = √3·V<sub>an</sub>∠+30° = 207.8∠62°.' }],
+  traps: ['לחלק ב-√3 גם כשהעומס במשולש (שם המתח על העומס הוא מתח הקו).', 'לשכוח את ה-30° כשמבקשים זווית של מתח קו.', 'לכפול ב-3 גם את הזרם ולא רק את ההספק.'],
+  exam: 'תרגיל 1 כולו. במבחן זה בדרך כלל השלב הראשון לפני שאלת מנוע או שנאי.',
+};
+
+// ---------- 4. three-phase Δ ----------
+Le.threeDelta = {
+  simple: `<p>ב<b>משולש (Δ)</b> אין נקודת אפס. כל עומס מחובר <b>בין שני קווים</b>, ולכן המתח שהוא מקבל הוא מתח הקו המלא.</p>
+<p>הזרם בכל קו מתפצל לשני עומסים, ולכן זרם הקו הוא <b>הפרש</b> של שני זרמי פאזה. כמו במתחים בכוכב, ההפרש הזה יוצא גדול פי √3 ומסובב ב-30°, הפעם אחורה.</p>
+<p class="ana">🔁 סימטריה: בכוכב המתח קופץ פי √3 והזרם זהה. במשולש הזרם קופץ פי √3 והמתח זהה. ההספק √3V<sub>L</sub>I<sub>L</sub>cosθ יוצא אותו ביטוי בשני המקרים.</p>
+<p>טריק שימושי: עומס במשולש שקול לעומס בכוכב עם Z<sub>Y</sub> = Z<sub>Δ</sub>/3.</p>`,
+  pic: sv(340, 160, W([20, 20], [170, 20]) + W([20, 80], [80, 80]) + W([20, 140], [170, 140]) + T(12, 24, 'a', 'a') + T(12, 84, 'b', 'a') + T(12, 144, 'c', 'a') +
+    W([170, 20], [250, 20]) + W([170, 140], [250, 140]) + W([80, 80], [215, 80]) + Rv(250, 20, 140, sbs('Z', 'Δ')) + `<path class="w" d="M250 20L300 80L250 140"/>` + Rh(215, 80, 300, '') +
+    T(305, 54, sbs('Z', 'Δ'), '', 'start') + T(305, 112, sbs('Z', 'Δ'), '', 'start') + Arr(40, 30, 90, 30, sbs('I', 'a') + ' (קו)', 'h2', 'c') + Arr(258, 36, 290, 74, '', 'h') + T(285, 46, sbs('I', 'AB'), 'a', 'start') +
+    T(150, 110, sbs('I', 'L') + ' = √3·' + sbs('I', 'p') + ' , ' + sbs('V', 'p') + ' = ' + sbs('V', 'L'), 'a') + T(150, 155, 'כל עומס יושב בין שני קווים', 'm')),
+  sym: [['Z<sub>Δ</sub>', 'עכבת עומס לפאזה בחיבור משולש', 'Ω'], ['I<sub>AB</sub>', 'זרם פאזה – בתוך העומס שבין A ל-B', 'A'], ['I<sub>a</sub>', 'זרם הקו a = I<sub>AB</sub> − I<sub>CA</sub>', 'A'], ['V<sub>ab</sub>', 'מתח הקו = המתח על עומס במשולש', 'V'], ['Z<sub>Y</sub>', 'עומס כוכב שקול = Z<sub>Δ</sub>/3', 'Ω']],
+  intro: 'מוצאים זרם פאזה מחוק אוהם על עומס אחד, ואז זרם קו = √3 × זרם פאזה ∠−30°.',
+  body: `<p class="f">I<sub>AB</sub> = V<sub>ab</sub>/Z<sub>Δ</sub> · I<sub>BC</sub> = I<sub>AB</sub>∠−120° · I<sub>CA</sub> = I<sub>AB</sub>∠+120°</p>
+<p class="f">I<sub>a</sub> = I<sub>AB</sub> − I<sub>CA</sub> = √3·I<sub>AB</sub>∠−30°</p>
+<p class="f">Z<sub>Y</sub> = Z<sub>Δ</sub>/3 · P = 3|I<sub>AB</sub>|²R<sub>Δ</sub></p>
+<p><b>מקור בכוכב ועומס במשולש (Y-Δ):</b> מוצאים V<sub>ab</sub> = √3V<sub>an</sub>∠30°, וממשיכים כמו למעלה. לחלופין הופכים את העומס לכוכב, ואז I<sub>a</sub> = V<sub>an</sub>/(Z<sub>Δ</sub>/3).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-2, 2], y: [-1.25, 1.25], xl: '', yl: '', xt: [], yt: [] });
+    sliders(box, [{ k: 'th', label: 'זווית Z<sub>Δ</sub> °', min: -60, max: 60, step: 1, v: -37 }], v => {
+      P.clear(); const pol = (r, d) => [r * Math.cos(d * Math.PI / 180), r * Math.sin(d * Math.PI / 180)];
+      const ab = pol(0.75, -v.th), ca = pol(0.75, -v.th + 120), ia = [ab[0] - ca[0], ab[1] - ca[1]];
+      P.arrow(0, 0, 1, 0, 'c3', 'Vab'); P.arrow(0, 0, ab[0], ab[1], 'c1', 'IAB'); P.arrow(0, 0, ca[0], ca[1], 'c1', 'ICA'); P.arrow(ab[0], ab[1], ab[0] - ca[0], ab[1] - ca[1], 'c3', '−ICA', 4, 12); P.arrow(0, 0, ia[0], ia[1], 'c2', 'Ia', 4, 12);
+      return `I<sub>a</sub> = I<sub>AB</sub> − I<sub>CA</sub>: |I<sub>a</sub>|/|I<sub>AB</sub>| = ${fmt(Math.hypot(...ia) / 0.75)} (= √3)<br>∠I<sub>a</sub> = ∠I<sub>AB</sub> − 30° = ${fmt(-v.th - 30)}°`;
+    });
+  },
+  ex: { src: 'שיעור 4, דוגמה 7', inputs: { VL: 330, Z: [20, -15] } },
+  quiz: [{ q: 'עומס במשולש, V<sub>L</sub> = 400V. מה המתח על כל עומס?', o: ['400 V', '231 V', '693 V', '133 V'], a: 0, why: 'במשולש כל עומס מחובר בין שני קווים ⇒ מקבל את מתח הקו המלא.' },
+    { q: 'זרם הפאזה בעומס משולש הוא 10A. מה זרם הקו?', o: ['17.3 A', '10 A', '5.77 A', '30 A'], a: 0, why: 'I<sub>L</sub> = √3·I<sub>p</sub> = 17.3 A.' },
+    { q: 'Z<sub>Δ</sub> = 18 + j12 Ω. מה עכבת הכוכב השקולה?', o: ['6 + j4 Ω', '54 + j36 Ω', '10.4 + j6.9 Ω', '18 + j12 Ω'], a: 0, why: 'Z<sub>Y</sub> = Z<sub>Δ</sub>/3.' }],
+  traps: ['לחלק את V<sub>L</sub> ב-√3 בעומס משולש.', 'לשכוח את ה-−30° של זרם הקו.', 'לבלבל בין I<sub>AB</sub> (פאזה) ל-I<sub>a</sub> (קו).'],
+  exam: 'תרגיל 1, שאלות 6–11: חיבורי Y-Δ ו-Δ-Δ, לפעמים עם עכבת קו.',
+};
+
+// ---------- 5. three-phase from P & pf ----------
+Le.threePower = {
+  simple: `<p>הרבה פעמים לא נותנים את העכבה, אלא מה שמודדים בפועל: <b>הספק</b>, <b>מקדם הספק</b> ו<b>מתח קו</b>. מזה מוציאים את הזרם, ומהזרם את העכבה.</p>
+<p>הנוסחה המרכזית P = √3·V<sub>L</sub>·I<sub>L</sub>·cosθ נכונה <b>גם בכוכב וגם במשולש</b>, כי היא כתובה בגדלי קו.</p>
+<p class="ana">🚚 אותו הספק עם pf נמוך פירושו יותר זרם: כמו משאית שחצי ממנה ריק. צריך יותר נסיעות, כלומר יותר זרם ויותר חום בכבלים, בשביל אותה סחורה.</p>`,
+  pic: picPowerTri,
+  sym: [['P', 'הספק ממשי כולל (3 פאזות)', 'W'], ['V<sub>L</sub>', 'מתח קו', 'V'], ['I<sub>L</sub>', 'זרם קו', 'A'], ['cosθ', 'מקדם הספק', '—'], ['θ', 'זווית העכבה: + מפגר (השראי), − מקדים (קיבולי)', '°'], ['Z<sub>Y</sub>', 'עכבה לפאזה = V<sub>p</sub>/I<sub>p</sub>', 'Ω']],
+  intro: 'מהספק ומתח מגיעים לזרם, ומהזרם לעכבה. הסימן של הזווית בא מ"מפגר" או "מקדים".',
+  body: `<p class="f">I<sub>L</sub> = P/(√3·V<sub>L</sub>·cosθ) · |Z<sub>Y</sub>| = V<sub>p</sub>/I<sub>p</sub> = (V<sub>L</sub>/√3)/I<sub>L</sub></p>
+<p class="f">Z<sub>Y</sub> = |Z|∠θ, כאשר θ = ±cos⁻¹(pf)</p>
+<p>במשולש: I<sub>p</sub> = I<sub>L</sub>/√3 ו-V<sub>p</sub> = V<sub>L</sub> ⇒ |Z<sub>Δ</sub>| = 3|Z<sub>Y</sub>|.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0.3, 1], y: [0, 120], xl: 'pf', yl: 'I_L [A]', xt: [[0.4, '0.4'], [0.6, '0.6'], [0.8, '0.8'], [1, '1']], yt: [[0, '0'], [50, '50'], [100, '100']] });
+    sliders(box, [{ k: 'P', label: 'P kW', min: 2, max: 30, step: 1, v: 12 }, { k: 'pf', label: 'pf', min: 0.3, max: 1, step: 0.01, v: 0.6 }], v => {
+      P.clear(); const I = pf => v.P * 1e3 / (Math.sqrt(3) * 208 * pf);
+      P.fn(I, 'c1', 0.3, 1); P.dot(v.pf, I(v.pf), fmt(I(v.pf)) + 'A');
+      return `V<sub>L</sub> = 208V: I<sub>L</sub> = ${fmt(I(v.pf))}A. ב-pf = 1 היה מספיק ${fmt(I(1))}A<br>זרם עודף ${fmt((I(v.pf) / I(1) - 1) * 100)}% ⇒ הפסדי נחושת גדולים פי ${fmt((I(v.pf) / I(1)) ** 2)}`;
+    });
+  },
+  ex: { src: 'תרגיל 1, שאלה 14', inputs: { P: 12, pf: 0.6, lead: true, VL: 208 } },
+  quiz: [{ q: 'pf = 0.6 מקדים. מה סימן הזווית של Z?', o: ['שלילי (קיבולי)', 'חיובי (השראי)', 'אפס', 'אי אפשר לדעת'], a: 0, why: 'מקדים ⇒ הזרם לפני המתח ⇒ עומס קיבולי ⇒ θ = −53.13°.' },
+    { q: 'האם P = √3V<sub>L</sub>I<sub>L</sub>cosθ נכון גם במשולש?', o: ['כן, בגדלי קו זה תמיד נכון', 'רק בכוכב', 'רק במשולש', 'רק בעומס התנהגותי'], a: 0, why: 'בשני החיבורים 3V<sub>p</sub>I<sub>p</sub> = √3V<sub>L</sub>I<sub>L</sub>.' }],
+  traps: ['לשכוח את √3 ולחשב P = V<sub>L</sub>I<sub>L</sub>cosθ.', 'להתעלם מ"מקדים": לתת זווית חיובית.'],
+  exam: 'תרגיל 1, שאלות 13–14, ומשמש כבסיס לשאלות מנוע (זרם הקו מהספק הכניסה).',
+};
+
+// ---------- 6. magnetic circuit with gap ----------
+const picCore = sv(340, 170, `<path class="core" fill-rule="evenodd" d="M20 15H200V155H20Z M50 45H170V125H50Z"/><rect x="170" y="78" width="30" height="12" class="gapf"/>` +
+  `<path class="h" d="M60 30H185V58" fill="none"/><path class="h" d="M185 110V140H35V30H60" fill="none"/>` + Arr(110, 30, 130, 30, '', 'h') + Arr(110, 140, 90, 140, '', 'h') + T(110, 24, 'Φ', 'a') +
+  [0, 1, 2, 3, 4].map(i => `<path class="h2" d="M14 ${55 + i * 12}h42"/>`).join('') + T(8, 112, 'N', 'c', 'end') + Arr(4, 130, 4, 118, '', 'h2') + T(12, 140, 'I', 'c', 'start') + T(205, 88, sbs('l', 'g'), 'a', 'start') + T(110, 90, sbs('l', 'c'), 'm') + T(110, 102, 'מסלול ממוצע', 'm') +
+  // equivalent magnetic circuit
+  Src(250, 85, '') + W([250, 72], [250, 30], [330, 30], [330, 45]) + Rv(330, 45, 85, '') + Rv(330, 88, 128, '') + W([330, 128], [330, 140], [250, 140], [250, 98]) + T(234, 80, 'F=NI', 'c', 'end') + T(318, 68, sbs('ℛ', 'c'), '', 'end') + T(318, 112, sbs('ℛ', 'g'), 'a', 'end') + T(290, 160, 'המעגל השקול', 'm'));
+Le.magGap = {
+  simple: `<p>סליל שזורם בו זרם יוצר שדה מגנטי. אם מלפפים אותו על <b>ברזל</b>, הברזל "אוסף" את קווי השדה ומוביל אותם במסלול סגור, כמו צינור שמוביל מים.</p>
+<p>מסתבר שאפשר לחשב את זה בדיוק כמו מעגל חשמלי:</p>
+<p class="ana">⚡ = 🧲 &nbsp; מתח ↔ <b>כמ"מ F = NI</b> (מה שדוחף), &nbsp; זרם ↔ <b>שטף Φ</b> (מה שזורם), &nbsp; התנגדות ↔ <b>רלוקטנס ℛ</b> (מה שמפריע). &nbsp; חוק אוהם V = IR הופך ל: <b>F = Φℛ</b>.</p>
+<p>לברזל יש μ<sub>r</sub> של אלפים, ולכן הרלוקטנס שלו קטן. <b>לאוויר μ<sub>r</sub> = 1</b>: חריץ של מילימטר אחד יכול להפריע יותר מ-30 ס"מ של ברזל. בתרגילים כמעט תמיד החריץ הוא מה שקובע.</p>`,
+  pic: picCore,
+  sym: [['F', 'כוח מגנטו-מניע (כמ"מ), מה שדוחף את השטף. F = N·I', 'A (A·t)'], ['N', 'מספר הכריכות בסליל', '—'], ['Φ', 'שטף מגנטי – "הזרם" של המעגל המגנטי', 'Wb'], ['B', 'צפיפות שטף = Φ/A', 'T = Wb/m²'],
+    ['H', 'עוצמת השדה המגנטי. B = μH', 'A/m'], ['ℛ', 'רלוקטנס, ההתנגדות המגנטית. ℛ = l/(μA)', 'A/Wb'], ['μ<sub>0</sub>', 'חדירות הריק = 4π×10⁻⁷', 'H/m'], ['μ<sub>r</sub>', 'חדירות יחסית: אוויר 1, ברזל אלפים', '—'],
+    ['l<sub>c</sub>, l<sub>g</sub>', 'אורך מסלול השטף בליבה / בחריץ', 'm'], ['A', 'שטח החתך שהשטף עובר בו', 'm²']],
+  intro: 'מציירים מעגל שקול: F כמקור, ורלוקטנסים בטור או במקביל בדיוק כמו נגדים. ואז "חוק אוהם".',
+  body: `<p class="f">ℛ = l/(μ<sub>0</sub>μ<sub>r</sub>A) · ℛ<sub>g</sub> = l<sub>g</sub>/(μ<sub>0</sub>A<sub>g</sub>) · F = NI = Φ·Σℛ</p>
+<p class="f">Φ = B·A · H = B/(μ<sub>0</sub>μ<sub>r</sub>) · NI = ΣH<sub>k</sub>l<sub>k</sub> (חוק אמפר)</p>
+<p><b>שלבים:</b></p><ol><li>לכל קטע: אורך מסלול ממוצע ושטח חתך.</li><li>רלוקטנס לכל קטע, בברזל ובאוויר.</li><li>מחברים בטור או במקביל כמו נגדים.</li><li>Φ = B·A מהנתון, ואז NI = Φℛ<sub>T</sub>.</li></ol>
+<p><b>זליגה (fringing):</b> בחריץ השדה "מתנפח", ולכן שטח החריץ גדול מעט יותר. בתרגיל: A<sub>g</sub> = (a + g)(b + g), או תוספת של 5% לשטח.</p>
+<p><b>מקדם מילוי (stacking):</b> ליבה ממוקצעת (פחים) ⇒ שטח הברזל האפקטיבי הוא K·A.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1], y: [0, 3], xl: 'NI', yl: '', xt: [], yt: [[0.5, 'חריץ'], [1.5, 'ברזל'], [2.5, 'סה"כ']] });
+    sliders(box, [{ k: 'g', label: 'חריץ mm', min: 0, max: 3, step: 0.1, v: 1 }, { k: 'mr', label: 'μ<sub>r</sub>', min: 200, max: 10000, step: 100, v: 5000 }], v => {
+      P.clear(); const A = 3.3e-4, lc = 0.3, B = 1.2, Rc = lc / (MU0 * v.mr * A), Rg = v.g * 1e-3 / (MU0 * A), Fc = B * A * Rc, Fg = B * A * Rg, F = Fc + Fg, sc = 1 / Math.max(F, 1);
+      P.rect(0, 0.2, Fg * sc, 0.6, 'bar b0'); P.rect(0, 1.2, Fc * sc, 0.6, 'bar b1'); P.rect(0, 2.2, Fg * sc, 0.6, 'bar b0'); P.rect(Fg * sc, 2.2, Fc * sc, 0.6, 'bar b1');
+      return `ליבה 30cm, A = 3.3cm², B = 1.2T: NI דרוש = <b>${fmt(F)} A</b><br>ברזל: ${fmt(Fc)} A · חריץ: ${fmt(Fg)} A ⇒ החריץ "לוקח" ${fmt(Fg / F * 100)}% מה-NI`;
+    });
+  },
+  ex: { src: 'שיעור 7, דוגמה 1', inputs: { lc: 30, A: 3.3, g: 1, mr: 5000, B: 1.2, I: 1 } },
+  quiz: [{ q: 'מגדילים את החריץ פי 2 (ברזל אידיאלי). מה קורה ל-NI הדרוש לאותו B?', o: ['גדל בערך פי 2', 'לא משתנה', 'קטן פי 2', 'גדל פי 4'], a: 0, why: 'כשהחריץ שולט NI ≈ Φℛ<sub>g</sub>, ו-ℛ<sub>g</sub> יחסי ל-l<sub>g</sub>.' },
+    { q: 'מה "הזרם" במעגל מגנטי?', o: ['השטף Φ', 'הזרם I בסליל', 'H', 'הרלוקטנס'], a: 0, why: 'F = Φℛ, כמו V = IR. Φ הוא מה שזורם במסלול.' },
+    { q: 'שני ענפים במקביל עם רלוקטנס זהה. איך מתחלק השטף?', o: ['חצי-חצי', 'הכל בענף הראשון', 'אי אפשר לדעת', 'פי √2'], a: 0, why: 'בדיוק כמו זרם בשני נגדים זהים במקביל.' }],
+  traps: ['לשכוח להמיר cm² ל-m² (×10⁻⁴).', 'להשתמש ב-μ<sub>r</sub> של הברזל גם לחריץ.', 'אורך מסלול: לקחת את הממוצע (באמצע הענף), לא את המידה החיצונית.'],
+  exam: 'תרגיל 2 כולו. במבחן: ליבה עם 2–3 ענפים, חריץ וזליגה של 5%.',
+};
+Le.toroidGap = {
+  simple: `<p>טורואיד הוא ליבה בצורת טבעת (סופגנייה) עם סליל מלופף עליה. השטף מסתובב בתוך הטבעת, וכמעט לא בורח החוצה.</p>
+<p><b>חוק אמפר</b> אומר: אם הולכים פעם אחת מסביב למסלול סגור, סכום (H × אורך) שווה לזרם הכולל שעבר דרך המסלול, כלומר NI.</p>
+<p class="ana">⛰️ כמו טיפוס: NI הוא סך הגובה שצריך לטפס. הברזל הוא שביל מתון (H קטן), והחריץ הוא קיר תלול (H ענק). רוב הטיפוס קורה בקיר.</p>
+<p>B זהה בברזל ובחריץ (אותו שטף ואותו שטח). <b>H שונה מאוד</b>, כי בחריץ μ קטן פי אלפים.</p>
+<p>⚠ μ<sub>r</sub> של ברזל <b>לא קבוע</b>: כשמגדילים H הברזל <b>נרווה</b>, ו-B כמעט מפסיק לעלות. בסימולציה רואים את זה.</p>`,
+  pic: sv(340, 160, `<circle cx="110" cy="80" r="68" class="core"/><circle cx="110" cy="80" r="44" class="gapf" stroke="#5a5f7d"/><rect x="172" y="74" width="20" height="12" class="gapf"/>` +
+    `<circle cx="110" cy="80" r="56" class="dsh"/>` + [0, 1, 2, 3, 4, 5].map(i => { const a = (150 + i * 12) * Math.PI / 180; return `<line x1="${110 + 38 * Math.cos(a)}" y1="${80 + 38 * Math.sin(a)}" x2="${110 + 74 * Math.cos(a)}" y2="${80 + 74 * Math.sin(a)}" class="h2"/>`; }).join('') +
+    T(28, 150, 'N כריכות, I', 'c') + T(200, 84, sbs('l', 'g'), 'a', 'start') + T(110, 84, sbs('D', 'i'), 'm') + Arr(110, 12, 140, 14, 'Φ', 'h') +
+    T(250, 40, 'l = π(D' + '<tspan dy="3" font-size="8">i</tspan><tspan dy="-3">+D</tspan><tspan dy="3" font-size="8">o</tspan><tspan dy="-3">)/2</tspan>', 'a') + T(250, 64, 'A = (D' + '<tspan dy="3" font-size="8">o</tspan><tspan dy="-3">−D</tspan><tspan dy="3" font-size="8">i</tspan><tspan dy="-3">)/2 · עומק</tspan>', '') + T(250, 96, 'NI = H' + '<tspan dy="3" font-size="8">c</tspan><tspan dy="-3">l + H</tspan><tspan dy="3" font-size="8">g</tspan><tspan dy="-3">l</tspan><tspan dy="3" font-size="8">g</tspan>', 'c')),
+  sym: [['H<sub>c</sub>, H<sub>g</sub>', 'עוצמת השדה בליבה / בחריץ', 'A/m'], ['B', 'צפיפות שטף – זהה בליבה ובחריץ (בלי זליגה)', 'T'], ['D<sub>i</sub>, D<sub>o</sub>', 'קוטר פנימי / חיצוני של הטבעת', 'm'], ['l', 'היקף ממוצע = π·D<sub>ממוצע</sub>', 'm'],
+    ['μ<sub>r</sub>', 'חדירות יחסית = B/(μ<sub>0</sub>H)', '—'], ['ℛ<sub>T</sub>', 'רלוקטנס כולל = F/Φ', 'A/Wb'], ['B<sub>sat</sub>', 'רוויה – מעל זה הברזל כמעט לא מוסיף B', 'T']],
+  intro: 'חוק אמפר על המסלול הסגור: NI = H<sub>c</sub>l<sub>c</sub> + H<sub>g</sub>l<sub>g</sub>.',
+  body: `<p class="f">H<sub>g</sub> = B/μ<sub>0</sub> · H<sub>c</sub> = (NI − H<sub>g</sub>l<sub>g</sub>)/l<sub>c</sub> · μ<sub>r</sub> = B/(μ<sub>0</sub>H<sub>c</sub>)</p>
+<p class="f">ℛ<sub>T</sub> = F/Φ = NI/(B·A) · או: ℛ<sub>T</sub> = ℛ<sub>c</sub> + ℛ<sub>g</sub></p>
+<p>שדה של מוליך ישר: H = I/(2πr). בתוך טורואיד: H = NI/(2πr).</p>
+<p><b>עקום מגנוט (B–H):</b> כשנותנים גרף במקום μ<sub>r</sub>, מחשבים B, קוראים את H מהגרף, ואז NI = ΣHl.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 3000], y: [0, 2], xl: 'H [A/m]', yl: 'B [T]', xt: [[0, '0'], [1000, '1000'], [2000, '2000'], [3000, '3000']], yt: [[0, '0'], [1, '1'], [2, '2']] });
+    const Bh = H => 1.6 * Math.tanh(H / 350) + MU0 * H;
+    sliders(box, [{ k: 'H', label: 'H A/m', min: 20, max: 3000, step: 10, v: 300 }], v => {
+      P.clear(); P.fn(Bh, 'c1', 0, 3000); P.fn(H => 1.6 / 350 * H, 'c3', 0, 400); const B = Bh(v.H), mr = B / (MU0 * v.H);
+      P.dot(v.H, B, `μr≈${fmt(mr, 2)}`);
+      return `B = ${fmt(B)}T, μ<sub>r</sub> = B/(μ<sub>0</sub>H) = <b>${fmt(mr)}</b><br>${v.H > 700 ? '⚠ רוויה: מכפילים את H ו-B כמעט לא זז. μ<sub>r</sub> צונח.' : 'תחום ליניארי: μ<sub>r</sub> כמעט קבוע (הקו האפור)'}`;
+    });
+  },
+  ex: { src: 'תרגיל 2, שאלה 2', inputs: { Di: 20, Do: 25, d: 2, g: 1, N: 500, I: 3, Bg: 1.2 } },
+  quiz: [{ q: 'B בחריץ הוא 1.2T. מה B בברזל שלידו (בלי זליגה)?', o: ['1.2 T', 'פי μ<sub>r</sub> יותר', 'פי μ<sub>r</sub> פחות', '0'], a: 0, why: 'אותו שטף עובר באותו שטח ⇒ אותו B. מה ששונה הוא H.' },
+    { q: 'איפה H גדול יותר?', o: ['בחריץ', 'בברזל', 'שווה', 'תלוי בזרם'], a: 0, why: 'H = B/μ. באוויר μ קטן פי אלפים ⇒ H גדול פי אלפים.' }],
+  traps: ['קוטר במקום רדיוס בחישוב ההיקף.', 'לשכוח להוריד את H<sub>g</sub>l<sub>g</sub> לפני שמחלקים ב-l<sub>c</sub>.', 'להניח μ<sub>r</sub> קבוע כשנתון עקום B–H.'],
+  exam: 'תרגיל 2, שאלות 2–4. כשיש עקום מגנוט, קוראים H מהגרף.',
+};
+
+// ---------- 7. ideal transformer ----------
+const picTrIdeal = sv(340, 150, `<path class="core" fill-rule="evenodd" d="M110 20H230V130H110Z M135 45H205V105H135Z"/>` +
+  [0, 1, 2, 3, 4].map(i => `<path class="h2" d="M103 ${52 + i * 11}h40"/>`).join('') + [0, 1, 2].map(i => `<path class="h" d="M197 ${60 + i * 11}h40"/>`).join('') +
+  Src(40, 75, '') + W([40, 62], [40, 52], [103, 52]) + W([40, 88], [40, 98], [103, 96]) + W([237, 60], [300, 60]) + W([237, 82], [300, 82], [300, 98]) + Rv(300, 60, 98, '') + T(310, 82, 'Z', '', 'start') +
+  T(120, 15, sbs('N', '1'), 'c') + T(222, 15, sbs('N', '2'), 'a') + T(170, 32, 'Φ', 'a') + Arr(150, 34, 190, 34, '', 'h') + T(26, 79, sbs('V', '1'), '', 'end') + T(270, 76, sbs('V', '2'), '', 'middle') +
+  Arr(55, 46, 85, 46, sbs('I', '1'), 'h2', 'c') + Arr(250, 54, 280, 54, sbs('I', '2'), 'h', 'a') + T(170, 146, 'a = N₁/N₂ = V₁/V₂ = I₂/I₁', 'a'));
+Le.trIdeal = {
+  simple: `<p>שנאי הוא <b>שני סלילים על אותה ליבת ברזל</b>, בלי שום חיבור חשמלי ביניהם. זרם חילופין בסליל הראשון יוצר שטף משתנה בליבה. אותו שטף עובר בסליל השני ומשרה בו מתח (חוק פאראדיי).</p>
+<p>כל כריכה "מרגישה" את אותו שטף, ולכן <b>המתח יחסי למספר הכריכות</b>. לסליל עם פי 10 כריכות יש פי 10 מתח.</p>
+<p class="ana">⚙️ כמו גלגלי שיניים: מה שמרוויחים במתח מפסידים בזרם. ההספק V·I נשמר, כי בשנאי אידיאלי אין הפסדים.</p>
+<p><b>למה זה חשוב?</b> הפסדים בקו הם I²R. אם מעלים את המתח פי 10, הזרם יורד פי 10 וההפסדים יורדים <b>פי 100</b>. לכן מעבירים חשמל במתח גבוה ומורידים אותו ליד הבית.</p>
+<p><b>הפניה (Referral):</b> אפשר "להעביר" עכבה מצד אחד של השנאי לצד השני, כאילו השנאי לא קיים: מכפילים ב-a². כך מקבלים מעגל אחד פשוט.</p>`,
+  pic: picTrIdeal,
+  sym: [['a', 'יחס ההשנאה = N<sub>1</sub>/N<sub>2</sub>', '—'], ['N<sub>1</sub>, N<sub>2</sub>', 'מספר הכריכות בראשוני (מקור) ובמשני (עומס)', '—'], ['V<sub>1</sub>, V<sub>2</sub>', 'מתח ראשוני / משני', 'V'], ['I<sub>1</sub>, I<sub>2</sub>', 'זרם ראשוני / משני', 'A'],
+    ["Z'", 'עכבה מופנית לראשוני = a²Z', 'Ω'], ['Φ', 'השטף המשותף בליבה', 'Wb'], ['η', 'נצילות = P<sub>out</sub>/P<sub>in</sub>. באידיאלי = 1', '—']],
+  intro: 'מחליפים שנאי בהפניה: עכבות ×a², מתחים ×a, זרמים ÷a. מקבלים מעגל אחד ופותרים אותו.',
+  body: `<p class="f">a = N<sub>1</sub>/N<sub>2</sub> = V<sub>1</sub>/V<sub>2</sub> = I<sub>2</sub>/I<sub>1</sub> · V<sub>1</sub>I<sub>1</sub> = V<sub>2</sub>I<sub>2</sub></p>
+<p class="f">הפניה לראשוני: Z' = a²Z · V'<sub>2</sub> = aV<sub>2</sub> · I'<sub>2</sub> = I<sub>2</sub>/a</p>
+<p class="f">הפניה למשני: מחלקים ב-a² (עכבה), V<sub>1</sub>/a (מתח)</p>
+<p><b>שלבים במערכת עם קו ושני שנאים:</b></p><ol><li>מעבירים את העומס דרך השנאי המוריד לצד הקו (×a²).</li><li>מעבירים את הגנרטור דרך השנאי המעלה לצד הקו.</li><li>פותרים מעגל טורי: זרם הקו, הפסדי הקו I²R.</li><li>חוזרים דרך השנאי כדי למצוא את מתח העומס.</li></ol>`,
+  graph(box) {
+    const P = plot(box, { x: [1, 20], y: [0, 40], xl: 'a (יחס העלאה)', yl: 'הפסד %', xt: [[1, '1'], [5, '5'], [10, '10'], [20, '20']], yt: [[0, '0'], [20, '20'], [40, '40']] });
+    sliders(box, [{ k: 'a', label: 'יחס העלאה a', min: 1, max: 20, step: 1, v: 1 }], v => {
+      P.clear(); const run = a => { const Zl = [0.18, 0.24], ZL = [4 * a * a, 3 * a * a], I = 480 * a / Cx.abs(Cx.add(Zl, ZL)), Pl = I * I * 0.18, PL = I * I * ZL[0]; return [I, Pl / (Pl + PL) * 100, I * Cx.abs(ZL) / a]; };
+      P.fn(a => run(a)[1], 'c1', 1, 20); const [I, pct, VL] = run(v.a); P.dot(v.a, pct, fmt(pct, 2) + '%');
+      return `גנרטור 480V, קו 0.18 + j0.24Ω, עומס 4 + j3Ω<br>זרם בקו ${fmt(I)}A · מתח העומס ${fmt(VL)}V · ${fmt(pct)}% מההספק הולך לאיבוד`;
+    });
+  },
+  ex: { src: 'שיעור 8, דוגמה', inputs: { mode: 'tx', Vg: 480, Zl: [0.18, 0.24], ZL: [4, 3], a: 10 } },
+  quiz: [{ q: 'שנאי 10:1 (מוריד). עומס של 4Ω במשני. מה העכבה שרואים מהראשוני?', o: ['400 Ω', '40 Ω', '0.4 Ω', '0.04 Ω'], a: 0, why: "Z' = a²Z = 100·4." },
+    { q: 'מעלים את מתח ההולכה פי 10 (אותו הספק). מה קורה להפסדי הקו?', o: ['קטנים פי 100', 'קטנים פי 10', 'לא משתנים', 'גדלים פי 10'], a: 0, why: 'הזרם קטן פי 10 ⇒ I²R קטן פי 100.' },
+    { q: 'בשנאי מוריד 10:1, I<sub>2</sub> = 50A. מה I<sub>1</sub>?', o: ['5 A', '500 A', '50 A', '0.5 A'], a: 0, why: 'I<sub>1</sub> = I<sub>2</sub>/a. בצד המתח הגבוה הזרם קטן.' }],
+  traps: ['להפוך את a: בשנאי מעלה 1:10, a = 0.1.', 'להפנות עכבה ב-a במקום a².', 'לשכוח לחזור דרך השנאי בסוף (מתח העומס האמיתי).'],
+  exam: 'תרגיל 3, שאלה 1, ושיעור 8: אותה מערכת עם ובלי שנאים, ואחוז ההספק שמגיע לעומס.',
+};
+
+// ---------- 8. OC / SC tests ----------
+Le.trOcSc = {
+  simple: `<p>שנאי אמיתי הוא לא אידיאלי. יש לו <b>שני סוגי הפסדים</b>, וכל אחד מקבל ענף במעגל התמורה:</p>
+<p><b>ענף המגנוט (R<sub>μ</sub> ∥ X<sub>μ</sub>)</b>: הברזל. צריך זרם קטן כדי למגנט את הליבה (X<sub>μ</sub>), והברזל מתחמם מהיסטרזיס וזרמי מערבולת (R<sub>μ</sub>). ההפסד הזה תלוי ב<b>מתח</b>.</p>
+<p><b>הענף הטורי (R<sub>K</sub> + jX<sub>K</sub>)</b>: הנחושת של הסלילים (R<sub>K</sub>) ושטף שבורח ולא עובר לצד השני (זליגה, X<sub>K</sub>). ההפסד הזה תלוי ב<b>זרם</b>.</p>
+<p class="ana">🔬 הטריק: בכל ניסוי "מכבים" ענף אחד. <b>ריקם</b>: המשני פתוח, אז אין זרם עומס ונשאר רק ענף המגנוט. <b>קצר</b>: מתח נמוך מאוד, אז הברזל כמעט לא ממוגנט ונשאר רק הענף הטורי.</p>
+<p>בכל ניסוי מודדים V, I, P (וטמטר), ומשלושת המספרים מחלצים שני פרמטרים.</p>`,
+  pic: picTrEq('oc') + `<p class="hint" style="text-align:center">בכתום: מה ש"רואים" בניסוי ריקם. בניסוי קצר רואים רק את הענף הטורי.</p>` + picTrEq('sc'),
+  sym: [['R<sub>μ</sub>', 'נגד הפסדי הברזל (מקביל). גדול מאוד: kΩ', 'Ω'], ['X<sub>μ</sub>', 'ריאקטנס המגנוט (מקביל). גדול מאוד', 'Ω'], ['R<sub>K</sub>', 'התנגדות הנחושת = R<sub>1</sub> + a²R<sub>2</sub>. קטן', 'Ω'], ['X<sub>K</sub>', 'ריאקטנס הזליגה = X<sub>1</sub> + a²X<sub>2</sub>. קטן', 'Ω'],
+    ['Z<sub>K</sub>', 'עכבת הקצר = R<sub>K</sub> + jX<sub>K</sub>', 'Ω'], ['V<sub>oc</sub>, I<sub>oc</sub>, P<sub>oc</sub>', 'מדידות ניסוי ריקם (open circuit)', 'V, A, W'], ['V<sub>sc</sub>, I<sub>sc</sub>, P<sub>sc</sub>', 'מדידות ניסוי קצר (short circuit). I<sub>sc</sub> = זרם נקוב', 'V, A, W'],
+    ['I<sub>Rμ</sub>, I<sub>μ</sub>', 'רכיב הזרם האקטיבי (בפאזה עם V) / רכיב המגנוט (90° אחריו)', 'A'], ['P<sub>Fe</sub>', 'הפסדי ברזל (≈ P<sub>oc</sub>)', 'W'], ['P<sub>cu</sub>', 'הפסדי נחושת (≈ P<sub>sc</sub> בזרם נקוב)', 'W']],
+  intro: 'ריקם ⇒ R<sub>μ</sub>, X<sub>μ</sub>. קצר ⇒ R<sub>K</sub>, X<sub>K</sub>. בכל ניסוי: P נותן את ה-R, ו-V/I נותן את |Z|.',
+  body: `<p><b>ניסוי ריקם</b> (מתח נקוב, משני פתוח):</p>
+<p class="f">R<sub>μ</sub> = V<sub>oc</sub>²/P<sub>oc</sub> · I<sub>Rμ</sub> = V<sub>oc</sub>/R<sub>μ</sub> · I<sub>μ</sub> = √(I<sub>oc</sub>² − I<sub>Rμ</sub>²) · X<sub>μ</sub> = V<sub>oc</sub>/I<sub>μ</sub></p>
+<p><b>ניסוי קצר</b> (משני מקוצר, מעלים מתח עד שזורם הזרם הנקוב):</p>
+<p class="f">Z<sub>K</sub> = V<sub>sc</sub>/I<sub>sc</sub> · R<sub>K</sub> = P<sub>sc</sub>/I<sub>sc</sub>² · X<sub>K</sub> = √(Z<sub>K</sub>² − R<sub>K</sub>²)</p>
+<p>הערכים יוצאים מופנים <b>לצד שבו מדדו</b>. כדי להעביר לצד השני מחלקים או כופלים ב-a².</p>
+<p>מעגל T: אם רוצים, מחלקים R<sub>1</sub> = a²R<sub>2</sub> = R<sub>K</sub>/2, ואותו דבר עבור X.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-0.02, 0.3], y: [-0.27, 0.05], xl: 'Re (A)', yl: 'Im', xt: [[0, '0'], [0.1, '0.1'], [0.2, '0.2']], yt: [[-0.2, '−0.2'], [0, '0']] });
+    sliders(box, [{ k: 'P', label: 'P<sub>oc</sub> W', min: 50, max: 1500, step: 10, v: 400 }, { k: 'I', label: 'I<sub>oc</sub> A', min: 0.1, max: 0.26, step: 0.002, v: 0.214 }], v => {
+      P.clear(); const V = 8000, Ia = v.P / V; if (Ia >= v.I) return '⚠ P<sub>oc</sub> גדול מדי ביחס ל-I<sub>oc</sub>: אין רכיב מגנוט (בלתי אפשרי)';
+      const Im = Math.sqrt(v.I ** 2 - Ia ** 2);
+      P.arrow(-0.01, 0, 0.28, 0, 'c3', 'V'); P.arrow(0, 0, Ia, 0, 'c2', 'I_Rμ', -10, 14); P.arrow(Ia, 0, Ia, -Im, 'c5', 'I_μ'); P.arrow(0, 0, Ia, -Im, 'c1', 'I_oc', -40, 4);
+      return `V<sub>oc</sub> = 8000V: R<sub>μ</sub> = V²/P = <b>${fmt(V * V / v.P / 1e3)} kΩ</b>, X<sub>μ</sub> = V/I<sub>μ</sub> = <b>${fmt(V / Im / 1e3)} kΩ</b><br>cosφ<sub>oc</sub> = ${fmt(Ia / v.I)} – זרם הריקם כמעט כולו מגנוט`;
+    });
+  },
+  ex: { src: 'שיעור 9, דוגמה (20kVA, 8000/240V)', inputs: { Voc: 8000, Ioc: 0.214, Poc: 400, Vsc: 489, Isc: 2.5, Psc: 240 } },
+  quiz: [{ q: 'למה בניסוי קצר מזניחים את ענף המגנוט?', o: ['המתח נמוך מאוד ⇒ כמעט אין זרם בענף המקבילי', 'כי המשני מקוצר', 'כי R<sub>μ</sub> קטן', 'כי אין שטף בכלל'], a: 0, why: 'V<sub>sc</sub> הוא כמה אחוזים מהנקוב, וענף המגנוט מקבל זרם יחסי למתח.' },
+    { q: 'מה מודד P<sub>oc</sub>?', o: ['הפסדי ברזל', 'הפסדי נחושת', 'הספק העומס', 'הפסד בזליגה'], a: 0, why: 'בריקם הזרם קטן ⇒ הפסדי הנחושת זניחים. מה שנמדד הוא הברזל.' },
+    { q: 'מדדו את הניסוי בצד המתח הגבוה (a = 10). איך מעבירים את R<sub>K</sub> לצד הנמוך?', o: ['מחלקים ב-100', 'כופלים ב-100', 'מחלקים ב-10', 'לא משנים'], a: 0, why: 'עכבות עוברות ב-a²: R<sub>K,LV</sub> = R<sub>K,HV</sub>/a².' }],
+  traps: ['לחשב X<sub>μ</sub> = V/I<sub>oc</sub> בלי להוריד קודם את I<sub>Rμ</sub>.', 'להשתמש ב-V<sub>sc</sub>/I<sub>sc</sub> כ-R<sub>K</sub> (זה Z<sub>K</sub>).', 'לשכוח באיזה צד נמדד הניסוי.'],
+  exam: 'כמעט קבוע במבחן: נתוני ניסויים ⇒ מעגל תמורה ⇒ ויסות ונצילות.',
+};
+
+// ---------- 9. voltage regulation & efficiency ----------
+Le.trVR = {
+  simple: `<p>כשמחברים עומס, הזרם עובר דרך R<sub>K</sub> ו-X<sub>K</sub> ונופל עליהם מתח. לכן <b>מתח המוצא בעומס נמוך מאשר בריקם</b>.</p>
+<p><b>ויסות מתח (VR)</b> אומר בכמה אחוזים המתח "צונח" בין ריקם לעומס מלא. VR קטן פירושו שנאי "קשיח" וטוב.</p>
+<p class="ana">📐 הסוד הוא בזווית: בעומס <b>השראי</b> הזרם מאחר, והמפל מצטבר בכיוון של V<sub>2</sub>, אז VR גדול. בעומס <b>קיבולי</b> הזרם מקדים, המפל על X<sub>K</sub> מסתובב קדימה, ו-VR יכול לצאת <b>שלילי</b>: המתח בעומס עולה!</p>
+<p><b>נצילות η</b>: כמה מההספק שנכנס יוצא לעומס. ההפסדים הם נחושת (I²R<sub>K</sub>, תלוי בעומס) וברזל (קבוע כמעט).</p>`,
+  pic: picTrEq('', '') + `<p class="hint" style="text-align:center">מופנה למשני: V₁/a ← R'<sub>K</sub> + jX'<sub>K</sub> ← V₂ על העומס</p>`,
+  sym: [['VR', 'ויסות מתח = (V<sub>2,nl</sub> − V<sub>2,fl</sub>)/V<sub>2,fl</sub>', '%'], ['V<sub>2,nl</sub>', 'מתח המוצא בריקם = V<sub>1</sub>/a', 'V'], ['V<sub>2,fl</sub>', 'מתח המוצא בעומס מלא (נקוב)', 'V'], ["R'<sub>K</sub>, X'<sub>K</sub>", 'הענף הטורי מופנה לצד המשני', 'Ω'],
+    ['η', 'נצילות = P<sub>out</sub>/(P<sub>out</sub> + P<sub>cu</sub> + P<sub>Fe</sub>)', '%'], ['P<sub>cu</sub>', 'הפסדי נחושת = I²R<sub>K</sub>', 'W'], ['P<sub>Fe</sub>', 'הפסדי ברזל = V²/R<sub>μ</sub>', 'W'], ['lagging / leading', 'מפגר (השראי) / מקדים (קיבולי)', '—']],
+  intro: 'KVL פאזורי אחד: V<sub>1</sub>/a = V<sub>2</sub> + I<sub>2</sub>(R\'<sub>K</sub> + jX\'<sub>K</sub>). ממנו יוצאים VR, ומההפסדים יוצאת η.',
+  body: `<p class="f">V<sub>1</sub>/a = V<sub>2</sub>∠0° + I<sub>2</sub>∠−θ·(R'<sub>K</sub> + jX'<sub>K</sub>)</p>
+<p class="f">VR = (|V<sub>1</sub>/a| − V<sub>2</sub>)/V<sub>2</sub> × 100%</p>
+<p class="f">η = P<sub>out</sub>/(P<sub>out</sub> + P<sub>cu</sub> + P<sub>Fe</sub>) · P<sub>out</sub> = V<sub>2</sub>I<sub>2</sub>cosθ</p>
+<p><b>שלבים:</b></p><ol><li>I<sub>2</sub> = S/V<sub>2</sub>. הזווית: −cos⁻¹(pf) במפגר, + במקדים.</li><li>V<sub>2</sub> על ציר ה-0°.</li><li>KVL ⇒ V<sub>1</sub>/a.</li><li>VR מהגדלים.</li><li>הפסדים ⇒ η.</li></ol>
+<p>נצילות מקסימלית מתקבלת כשהפסדי הנחושת שווים להפסדי הברזל.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [-5, 300], y: [-95, 95], xl: '', yl: '', xt: [], yt: [] });
+    sliders(box, [{ k: 'th', label: 'זווית הזרם ° (− מפגר)', min: -60, max: 60, step: 1, v: -37 }, { k: 'z', label: 'הגדלת Z<sub>K</sub> ×', min: 1, max: 20, step: 1, v: 12 }], v => {
+      P.clear(); const I = Cx.p(65.2, v.th), Rk = 0.0445 * v.z, Xk = 0.0645 * v.z, dR = Cx.mul(I, [Rk, 0]), dX = Cx.mul(I, [0, Xk]), V1 = Cx.add(Cx.add([230, 0], dR), dX);
+      P.arrow(0, 0, 230, 0, 'c3', 'V₂', -20, 14); P.arrow(0, 0, I[0] * 0.8, I[1] * 0.8, 'c2', 'I₂'); P.arrow(230, 0, 230 + dR[0], dR[1], 'c5', 'IR', 2, 12); P.arrow(230 + dR[0], dR[1], V1[0], V1[1], 'c1', 'jIX', 4, 14); P.arrow(0, 0, V1[0], V1[1], 'c1', 'V₁/a', -60, -10);
+      const VR = (Cx.abs(V1) - 230) / 230 * 100;
+      return `VR = <b>${fmt(VR)}%</b> ${VR < 0 ? '← שלילי! עומס קיבולי מעלה את המתח' : v.th < -5 ? '(השראי: המפל מצטבר)' : ''}<br>(Z<sub>K</sub> מוגדל ×${v.z} כדי שיהיה רואים את החצים)`;
+    });
+  },
+  ex: { src: 'שיעור 10, דוגמה (15 kVA, 230V)', inputs: { S: 15, V2: 230, pf: 0.8, lead: false, Rk: 0.0445, Xk: 0.0645, Rm: 1050 } },
+  quiz: [{ q: 'באיזה עומס VR יכול להיות שלילי?', o: ['קיבולי (pf מקדים)', 'השראי (pf מפגר)', 'התנגדותי', 'אף פעם'], a: 0, why: 'הזרם המקדים מסובב את המפל jIX לכיוון שמגדיל את V<sub>2</sub>.' },
+    { q: 'בשנאי אידיאלי VR שווה ל-', o: ['0', '100%', '1', 'אינסוף'], a: 0, why: 'אין עכבה טורית ⇒ אין מפל ⇒ אותו מתח בריקם ובעומס.' }],
+  traps: ['לשים לזרם זווית +θ בעומס מפגר.', 'לחלק ב-V<sub>nl</sub> במקום ב-V<sub>fl</sub>.', 'לחבר את המפלים כגדלים ולא כפאזורים.'],
+  exam: 'תרגיל 3, שאלות 2, 3, 5 ו-6: ויסות לשלושה סוגי pf, ונצילות.',
+};
+
+// ---------- 10. IM speed / slip ----------
+Le.imSpeed = {
+  simple: `<p>שלוש פאזות בסלילי הסטטור, שמוזזים ב-120° בזמן ובמקום, יוצרות <b>שדה מגנטי מסתובב</b>, כמו מגנט שמסתובב סביב הרוטור. מהירות הסיבוב: <b>n<sub>1</sub> = 60f/p</b>.</p>
+<p>הרוטור הוא "כלוב" של מוטות מקוצרים. כל עוד השדה מסתובב <b>מהר יותר</b> מהרוטור, השדה "חותך" את המוטות ומשרה בהם זרם. הזרם הזה במגנטי יוצר כוח, והכוח גורר את הרוטור אחרי השדה.</p>
+<p class="ana">🏄 כמו גולש שרודף אחרי גל: אם הוא היה מגיע לגל, לא היה מה שידחוף אותו. לכן הרוטור תמיד <b>קצת מאחר</b>. הפיגור הזה נקרא <b>החלקה s</b>, ובעומס רגיל הוא 1%–5%.</p>
+<p>s = 1 אומר שהרוטור עומד (התנעה). s = 0 אומר מהירות סינכרונית, ואז אין מומנט. תדר הזרם ברוטור הוא f<sub>2</sub> = s·f, כלומר רק כמה הרץ.</p>`,
+  pic: sv(340, 150, `<circle cx="90" cy="75" r="62" class="core"/><circle cx="90" cy="75" r="40" class="gapf" stroke="#5a5f7d"/><circle cx="90" cy="75" r="34" class="core"/>` +
+    [0, 1, 2, 3, 4, 5].map(i => { const a = i * 60 * Math.PI / 180; return `<circle cx="${90 + 51 * Math.cos(a)}" cy="${75 + 51 * Math.sin(a)}" r="5" class="${['h', 'h2', 'dsh'][i % 3]}"/>`; }).join('') +
+    Arr(90, 75, 90 + 30 * Math.cos(-0.9), 75 + 30 * Math.sin(-0.9), '', 'h') + `<path class="h" d="M150 50a64 64 0 0 1 4 30" fill="none"/>` + Arr(153, 74, 154, 82, '', 'h') +
+    T(200, 30, 'סטטור: 3 סלילים, 120° ביניהם', '', 'start') + T(200, 52, 'שדה מסתובב: n₁ = 60f/p', 'a', 'start') + T(200, 74, 'רוטור (כלוב): n < n₁', 'c', 'start') + T(200, 96, 's = (n₁ − n)/n₁', 'a', 'start') + T(200, 118, 'f₂ = s·f', '', 'start')),
+  sym: [['n<sub>1</sub>', 'מהירות השדה המסתובב (סינכרונית) = 60f/p', 'rpm'], ['n', 'מהירות הרוטור (הציר)', 'rpm'], ['p', 'מספר <b>זוגות</b> קטבים (בסימון המרצה)', '—'], ['f', 'תדר הרשת (50/60)', 'Hz'],
+    ['s', 'החלקה = (n<sub>1</sub> − n)/n<sub>1</sub>', '— (או %)'], ['n<sub>2</sub>', 'מהירות ההחלקה = n<sub>1</sub> − n = s·n<sub>1</sub>', 'rpm'], ['f<sub>2</sub>', 'תדר הזרם ברוטור = s·f', 'Hz'], ['ω<sub>s</sub>', 'מהירות זוויתית סינכרונית = 2πn<sub>1</sub>/60', 'rad/s']],
+  intro: 'מהתדר ומספר זוגות הקטבים מקבלים n<sub>1</sub>. ההחלקה מקשרת בין n<sub>1</sub> למהירות האמיתית n.',
+  body: `<p class="f">n<sub>1</sub> = 60f/p · s = (n<sub>1</sub> − n)/n<sub>1</sub> · n = n<sub>1</sub>(1 − s)</p>
+<p class="f">n<sub>2</sub> = s·n<sub>1</sub> · f<sub>2</sub> = s·f = p·n<sub>2</sub>/60 · ω = 2πn/60</p>
+<p>ב-50Hz: p = 1 ⇒ 3000, p = 2 ⇒ 1500, p = 3 ⇒ 1000, p = 4 ⇒ 750 rpm.</p>
+<p><b>זיהוי p מתוך n:</b> אם נתונה מהירות 1455 rpm, n<sub>1</sub> היא הסינכרונית הקרובה <u>מעליה</u> (1500) ⇒ p = 2.</p>
+<p>מצבי עבודה: 0 < s ≤ 1 מנוע · s < 0 גנרטור (הרוטור מהיר מהשדה) · s > 1 בלם.</p>`,
+  graph(box) {
+    const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 340 170'); svg.setAttribute('class', 'sch'); box.append(svg);
+    svg.innerHTML = `<circle cx="170" cy="85" r="74" class="core"/><circle cx="170" cy="85" r="50" class="gapf" stroke="#5a5f7d"/><circle cx="170" cy="85" r="42" class="core"/>
+      <g id="fld"><line x1="170" y1="85" x2="170" y2="20" class="h"/><circle cx="170" cy="22" r="6" class="fl"/></g><g id="rot"><line x1="170" y1="85" x2="170" y2="48" class="h2" stroke-width="4"/></g>` +
+      T(20, 20, 'שדה', 'a', 'start') + T(20, 36, 'רוטור', 'c', 'start');
+    let a1 = 0, a2 = 0, last = 0, cur = null;
+    const tick = t => { if (!svg.isConnected) return; const dt = last ? (t - last) / 1000 : 0; last = t;
+      if (cur) { const k = 0.004; a1 += cur.n1 * k * dt * 6; a2 += cur.n * k * dt * 6; svg.querySelector('#fld').setAttribute('transform', `rotate(${a1} 170 85)`); svg.querySelector('#rot').setAttribute('transform', `rotate(${a2} 170 85)`); }
+      requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    sliders(box, [{ k: 'f', label: 'f Hz', min: 50, max: 60, step: 10, v: 50 }, { k: 'p', label: 'זוגות קטבים p', min: 1, max: 4, step: 1, v: 2 }, { k: 's', label: 'החלקה s %', min: 0, max: 100, step: 1, v: 5 }], v => {
+      const n1 = 60 * v.f / v.p, n = n1 * (1 - v.s / 100); cur = { n1, n };
+      return `n<sub>1</sub> = ${fmt(n1)} rpm · n = ${fmt(n, 4)} rpm · f<sub>2</sub> = ${fmt(v.s / 100 * v.f)} Hz<br>${v.s === 100 ? 'הרוטור עומד: רגע ההתנעה' : v.s === 0 ? 'סינכרוני: אין חיתוך שדה ⇒ אין זרם ⇒ אין מומנט' : 'השדה עוקף את הרוטור לאט (האנימציה מואטת)'}`;
+    });
+  },
+  ex: { src: 'תרגיל 4, שאלה 1', inputs: { f: 50, p: 3, s: 0.035 } },
+  quiz: [{ q: 'מנוע 50Hz מסתובב ב-1440 rpm. מה n<sub>1</sub> ו-s?', o: ['1500, 4%', '1440, 0', '3000, 52%', '1000, −44%'], a: 0, why: 'הסינכרונית הקרובה מעל 1440 היא 1500 ⇒ s = 60/1500 = 0.04.' },
+    { q: 'למה מנוע השראה לא יכול להגיע למהירות סינכרונית בכוחות עצמו?', o: ['אז אין השראה ברוטור ⇒ אין מומנט', 'בגלל חיכוך', 'כי התדר משתנה', 'כי p זוגי'], a: 0, why: 'בלי מהירות יחסית אין שינוי שטף ברוטור ⇒ אין זרם ⇒ אין כוח.' },
+    { q: 'מה תדר הזרם ברוטור ברגע ההתנעה (50Hz)?', o: ['50 Hz', '0 Hz', '2.5 Hz', '25 Hz'], a: 0, why: 's = 1 ⇒ f<sub>2</sub> = s·f = 50 Hz.' }],
+  traps: ['p = מספר קטבים במקום זוגות: מקבלים מהירות כפולה או חצי.', 'להחליף את n ו-n<sub>1</sub> בנוסחת ההחלקה.', 'לשכוח להמיר rpm ל-rad/s בחישוב מומנט.'],
+  exam: 'הסעיף הראשון כמעט בכל שאלת מנוע השראה.',
+};
+
+// ---------- 11. IM power flow ----------
+const picFlow = sv(340, 170, [['P₁', 20], ['P_em', 120], ['P_mech', 210], ['P₂', 300]].map(([t, x]) => `<rect x="${x - 18}" y="18" width="36" height="${t === 'P₁' ? 72 : t === 'P_em' ? 62 : t === 'P_mech' ? 58 : 54}" rx="4" fill="rgba(242,184,75,.25)" stroke="var(--acc)"/>` + T(x, 12, t, 'a')).join('') +
+  Arr(40, 50, 100, 50, '', 'h') + Arr(140, 48, 190, 48, '', 'h') + Arr(230, 46, 280, 46, '', 'h') +
+  Arr(55, 55, 55, 110, '', 'h2') + Arr(80, 55, 80, 140, '', 'h2') + Arr(165, 54, 165, 110, '', 'h2') + Arr(255, 52, 255, 110, '', 'h2') +
+  T(55, 124, 'ΔP' + '<tspan dy="3" font-size="8">cu1</tspan>', 'c') + T(55, 136, 'נחושת סטטור', 'm') + T(84, 154, 'ΔP' + '<tspan dy="3" font-size="8">Fe</tspan><tspan dy="-3"> ברזל</tspan>', 'c') + T(165, 124, 'ΔP' + '<tspan dy="3" font-size="8">cu2</tspan><tspan dy="-3"> = s·P</tspan><tspan dy="3" font-size="8">em</tspan>', 'c') + T(165, 138, 'נחושת רוטור', 'm') + T(255, 124, 'ΔP' + '<tspan dy="3" font-size="8">mech</tspan>', 'c') + T(255, 136, 'חיכוך ואוויר', 'm') +
+  T(120, 100, 'חריץ האוויר', 'm') + T(210, 100, '(1−s)·P' + '<tspan dy="3" font-size="8">em</tspan>', 'm'));
+Le.imFlow = {
+  simple: `<p>החשמל נכנס לסטטור (P<sub>1</sub>) ובדרך לציר הוא "נשפך" בכמה מקומות. מתחילים ב-P<sub>1</sub> ומורידים הפסדים אחד-אחד:</p>
+<p>① <b>נחושת הסטטור</b> (I²R<sub>1</sub>) ו<b>ברזל</b> ⇒ מה שנשאר עובר דרך חריץ האוויר לרוטור: <b>P<sub>em</sub></b>.<br>② מתוך P<sub>em</sub>, חלק בגודל <b>s·P<sub>em</sub></b> נשרף בנחושת הרוטור, והשאר <b>(1−s)·P<sub>em</sub></b> הופך לתנועה: P<sub>mech</sub>.<br>③ אחרי חיכוך ואוויר נשאר <b>P<sub>2</sub></b> על הציר.</p>
+<p class="ana">💧 כמו צינור עם שלוש דליפות. הדליפה ברוטור היא תמיד בדיוק החלק s מהזרימה שנכנסת אליו. לכן מנוע עם החלקה גדולה הוא בזבזני.</p>
+<p>המומנט: <b>T = P/ω</b>. באותו מומנט, P<sub>em</sub> = T·ω<sub>s</sub> ו-P<sub>mech</sub> = T·ω.</p>`,
+  pic: picFlow,
+  sym: [['P<sub>1</sub>', 'הספק כניסה חשמלי = √3V<sub>L</sub>I<sub>L</sub>cosφ', 'W'], ['ΔP<sub>cu1</sub>', 'הפסדי נחושת בסטטור = 3I<sub>1</sub>²R<sub>1</sub>', 'W'], ['ΔP<sub>Fe</sub>', 'הפסדי ברזל (ליבה) = 3E²/R<sub>μ</sub>', 'W'], ['P<sub>em</sub>', 'הספק אלקטרומגנטי (בחריץ האוויר) = 3I\'<sub>2</sub>²R\'<sub>2</sub>/s', 'W'],
+    ['ΔP<sub>cu2</sub>', 'הפסדי נחושת ברוטור = s·P<sub>em</sub>', 'W'], ['P<sub>mech</sub>', 'הספק מכני מפותח = (1−s)P<sub>em</sub>', 'W'], ['ΔP<sub>mech</sub>', 'הפסדי חיכוך ואוויר', 'W'], ['P<sub>2</sub>', 'הספק מוצא על הציר (P<sub>out</sub>)', 'W'],
+    ['T<sub>em</sub>', 'מומנט אלקטרומגנטי = P<sub>em</sub>/ω<sub>s</sub>', 'N·m'], ['T<sub>load</sub>', 'מומנט העומס = P<sub>2</sub>/ω', 'N·m'], ['η', 'נצילות = P<sub>2</sub>/P<sub>1</sub>', '%']],
+  intro: 'עוברים על דיאגרמת זרימת ההספק משמאל לימין, ובכל שלב מורידים את ההפסד המתאים.',
+  body: `<p class="f">P<sub>1</sub> = √3V<sub>L</sub>I<sub>L</sub>cosφ · P<sub>em</sub> = P<sub>1</sub> − ΔP<sub>cu1</sub> − ΔP<sub>Fe</sub></p>
+<p class="f">ΔP<sub>cu2</sub> = s·P<sub>em</sub> · P<sub>mech</sub> = (1−s)P<sub>em</sub> · P<sub>2</sub> = P<sub>mech</sub> − ΔP<sub>mech</sub></p>
+<p class="f">T<sub>em</sub> = P<sub>em</sub>/ω<sub>s</sub> = P<sub>mech</sub>/ω · T<sub>load</sub> = P<sub>2</sub>/ω · η = P<sub>2</sub>/P<sub>1</sub></p>
+<p><b>במעגל התמורה:</b> מפרקים R'<sub>2</sub>/s = R'<sub>2</sub> + R'<sub>2</sub>(1−s)/s. החלק הראשון הוא הפסד הנחושת, והשני מייצג את ההספק המכני (נגד "עומס").</p>
+<p>"הפסדים נוספים ברוטור" (כשנותנים כאלה) מורידים אחרי P<sub>mech</sub>, יחד עם החיכוך.</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 100], y: [0, 5], xl: '% מ-P₁', yl: '', xt: [[0, '0'], [50, '50'], [100, '100']], yt: [[4.5, 'P₁'], [3.5, 'P_em'], [2.5, 'P_mech'], [1.5, 'P₂']] });
+    sliders(box, [{ k: 's', label: 'החלקה s %', min: 1, max: 30, step: 1, v: 4.5 }, { k: 'cu1', label: 'ΔP<sub>cu1</sub> %', min: 0, max: 10, step: 0.5, v: 3.7 }, { k: 'fe', label: 'ΔP<sub>Fe</sub> %', min: 0, max: 6, step: 0.5, v: 2.6 }], v => {
+      P.clear(); const Pem = 100 - v.cu1 - v.fe, Pm = Pem * (1 - v.s / 100), P2 = Pm - 3.4;
+      P.rect(0, 4.2, 100, 0.6, 'bar b2'); P.rect(0, 3.2, Pem, 0.6, 'bar b0'); P.rect(0, 2.2, Pm, 0.6, 'bar b1'); P.rect(0, 1.2, P2, 0.6, 'bar b1');
+      P.rect(Pm, 2.2, Pem - Pm, 0.6, 'bar bad');
+      return `P<sub>em</sub> = ${fmt(Pem)}% · ΔP<sub>cu2</sub> = s·P<sub>em</sub> = <b>${fmt(Pem - Pm)}%</b> (באדום) · η ≈ <b>${fmt(P2)}%</b><br>הגדל את s: נחושת הרוטור "אוכלת" יותר ויותר`;
+    });
+  },
+  ex: { src: 'שיעור 11, דוגמה (50 kW, 380V)', inputs: { P2: 50, eta: 0.86, V: 380, pf: 0.87, R1: 0.07, PFe: 1.5, Pm: 2, f: 50, p: 3 } },
+  quiz: [{ q: 'P<sub>em</sub> = 20 kW, s = 0.05. מה הפסדי הנחושת ברוטור?', o: ['1 kW', '19 kW', '0.05 kW', '20 kW'], a: 0, why: 'ΔP<sub>cu2</sub> = s·P<sub>em</sub> = 0.05·20.' },
+    { q: 'מה ההבדל בין T<sub>em</sub> ל-T<sub>load</sub>?', o: ['T<sub>load</sub> אחרי הפסדי החיכוך', 'אין הבדל', 'T<sub>em</sub> קטן יותר', 'T<sub>load</sub> מחושב עם ω<sub>s</sub>'], a: 0, why: 'T<sub>em</sub> = P<sub>em</sub>/ω<sub>s</sub> (או P<sub>mech</sub>/ω), ו-T<sub>load</sub> = P<sub>2</sub>/ω.' }],
+  traps: ['לחלק P<sub>em</sub> ב-ω (צריך ω<sub>s</sub>), או P<sub>2</sub> ב-ω<sub>s</sub> (צריך ω).', 'לשכוח את √3 ב-P<sub>1</sub>.', 'להוריד ΔP<sub>Fe</sub> אחרי P<sub>em</sub>: הברזל שייך לסטטור.'],
+  exam: 'תרגיל 4, שאלות 2, 3 ו-5: כל השרשרת P<sub>1</sub> → P<sub>2</sub>, מומנטים ונצילות.',
+};
+
+// ---------- 12. torque–slip ----------
+Le.imTorque = {
+  simple: `<p>כמה מומנט המנוע נותן בכל מהירות? זו <b>עקומת המומנט–החלקה</b>, והיא הגרף הכי חשוב של מנוע השראה.</p>
+<p>בהחלקה קטנה (ליד המהירות הנקובה) המומנט <b>עולה בקו ישר</b> עם s. ככל שהעומס גדל, המנוע מאט מעט ומקבל יותר מומנט. זה אזור העבודה היציב.</p>
+<p>בנקודה <b>s<sub>cr</sub></b> המומנט מגיע לשיא <b>T<sub>max</sub></b>. אם העומס דורש יותר מזה, המנוע "נתקע" ונעצר.</p>
+<p class="ana">🎚️ הפלא: <b>T<sub>max</sub> לא תלוי ב-R'<sub>2</sub></b>. הגדלת התנגדות הרוטור רק <b>מזיזה</b> את השיא ימינה, לכיוון s = 1. כך אפשר לקבל מומנט התנעה מקסימלי (מנוע עם רוטור מלופף ונגדים חיצוניים).</p>`,
+  pic: picImEq(),
+  sym: [['T', 'מומנט', 'N·m'], ['T<sub>max</sub>', 'מומנט מקסימלי (מומנט שבירה)', 'N·m'], ['T<sub>st</sub>', 'מומנט התנעה (s = 1)', 'N·m'], ['s<sub>cr</sub>', 'החלקה קריטית – בה מתקבל T<sub>max</sub>', '—'],
+    ['R<sub>1</sub>, X<sub>1</sub>', 'התנגדות וריאקטנס הסטטור', 'Ω'], ["R'<sub>2</sub>, X'<sub>20</sub>", 'התנגדות וריאקטנס הרוטור (בעצירה), מופנים לסטטור', 'Ω'], ['X<sub>K</sub>', 'X<sub>1</sub> + X\'<sub>20</sub>', 'Ω'], ['V<sub>1</sub>', 'מתח <b>פאזה</b> של הסטטור', 'V'], ['ω<sub>s</sub>', 'מהירות סינכרונית, 2πf/p', 'rad/s']],
+  intro: 'גוזרים את T(s) מהמעגל, משווים את הנגזרת לאפס ומקבלים את s<sub>cr</sub>. מציבים s = 1 ומקבלים את T<sub>st</sub>.',
+  body: `<p class="f">T = (3V<sub>1</sub>²/ω<sub>s</sub>) · (R'<sub>2</sub>/s) / [(R<sub>1</sub> + R'<sub>2</sub>/s)² + X<sub>K</sub>²]</p>
+<p class="f">s<sub>cr</sub> = R'<sub>2</sub>/√(R<sub>1</sub>² + X<sub>K</sub>²) · T<sub>max</sub> = 3V<sub>1</sub>²/(2ω<sub>s</sub>[R<sub>1</sub> + √(R<sub>1</sub>² + X<sub>K</sub>²)])</p>
+<p class="f">T<sub>st</sub> = 3V<sub>1</sub>²R'<sub>2</sub>/(ω<sub>s</sub>[(R<sub>1</sub> + R'<sub>2</sub>)² + X<sub>K</sub>²])</p>
+<p><b>קירוב R<sub>1</sub> ≈ 0:</b> s<sub>cr</sub> = R'<sub>2</sub>/X<sub>K</sub>, T<sub>max</sub> = 3V²/(2ω<sub>s</sub>X<sub>K</sub>).</p>
+<p><b>נוסחת קלוס:</b> T ≈ 2T<sub>max</sub>/(s/s<sub>cr</sub> + s<sub>cr</sub>/s). בהחלקה קטנה T ≈ 2T<sub>max</sub>·s/s<sub>cr</sub> (ליניארי).</p>`,
+  graph(box) {
+    const P = plot(box, { x: [0, 1], y: [0, 1.1], xl: 's', yl: 'T/T_max', xt: [[0, '0'], [0.5, '0.5'], [1, '1 (התנעה)']], yt: [[0, '0'], [0.5, '0.5'], [1, '1']] });
+    sliders(box, [{ k: 'R2', label: "R'<sub>2</sub> Ω", min: 0.05, max: 1.2, step: 0.01, v: 0.2 }, { k: 'X', label: 'X<sub>K</sub> Ω', min: 0.3, max: 1.5, step: 0.05, v: 0.8 }], v => {
+      P.clear(); const R1 = 0.2, V = 230, ws = 157.08, rt = Math.hypot(R1, v.X), Tm = 3 * V * V / (2 * ws * (R1 + rt)), Tm0 = 3 * V * V / (2 * ws * (R1 + Math.hypot(R1, 0.8)));
+      const T = s => 3 * V * V * (v.R2 / s) / (ws * ((R1 + v.R2 / s) ** 2 + v.X ** 2)) / Tm0, scr = v.R2 / rt;
+      P.fn(T, 'c1', 0.003, 1); if (scr <= 1) P.dot(scr, Tm / Tm0, 's_cr'); P.dot(1, T(1), 'T_st', 'c2', -40, -8);
+      return `s<sub>cr</sub> = ${fmt(scr)} · T<sub>max</sub> = ${fmt(Tm)} N·m · T<sub>st</sub> = ${fmt(T(1) * Tm0)} N·m<br>R'<sub>2</sub> מזיז את השיא ולא משנה את גובהו. X<sub>K</sub> קטן מגדיל את T<sub>max</sub>`;
+    });
+  },
+  ex: { src: 'שיעור 12 – נוסחאות המומנט', inputs: { V: 230, R1: 0.2, Xk: 0.8, R2: 0.2, f: 50, p: 2 } },
+  quiz: [{ q: 'מכפילים את R\'<sub>2</sub>. מה קורה ל-T<sub>max</sub>?', o: ['לא משתנה', 'גדל פי 2', 'קטן פי 2', 'גדל פי 4'], a: 0, why: 'T<sub>max</sub> לא תלוי ב-R\'<sub>2</sub>. רק s<sub>cr</sub> גדל פי 2.' },
+    { q: 'המתח יורד ב-10%. מה קורה ל-T<sub>max</sub>?', o: ['יורד בכ-19%', 'יורד ב-10%', 'לא משתנה', 'עולה'], a: 0, why: 'T ∝ V² ⇒ 0.9² = 0.81.' },
+    { q: 'איזה s נותן מומנט התנעה מקסימלי?', o: ['s<sub>cr</sub> = 1', 's<sub>cr</sub> = 0', 's<sub>cr</sub> = 0.5', 'אין קשר'], a: 0, why: 'אם השיא נמצא בדיוק ב-s = 1, אז T<sub>st</sub> = T<sub>max</sub>.' }],
+  traps: ['להציב מתח קו במקום מתח פאזה.', 'ω<sub>s</sub> ולא ω של הרוטור.', 'לקחת s<sub>cr</sub> > 1 כפתרון לגיטימי לחישוב נגד.'],
+  exam: 'תרגיל 4, שאלות 4–6: s<sub>cr</sub>, T<sub>max</sub>, מהירות בשיא ומומנט התנעה.',
+};
+
+// ---------- enrich existing energy lessons (from past exams) ----------
+const picDC = sv(340, 140, Src(40, 70, '') + T(18, 74, 'E', 'a', 'end') + W([40, 57], [40, 25], [70, 25]) + Rh(70, 25, 130, sbs('R', 'a')) + W([130, 25], [300, 25]) + W([40, 83], [40, 115], [300, 115]) +
+  W([180, 25], [180, 45]) + Rv(180, 45, 95, sbs('R', 'f')) + W([180, 95], [180, 115]) + W([300, 25], [300, 45]) + Rv(300, 45, 95, sbs('R', 'L')) + W([300, 95], [300, 115]) + Dot(180, 25) + Dot(180, 115) + Dot(300, 25) + Dot(300, 115) +
+  Arr(80, 40, 110, 40, sbs('I', 'a'), 'h2', 'c') + Arr(190, 52, 190, 78, sbs('I', 'f'), 'h2', 'c') + Arr(310, 52, 310, 78, sbs('I', 'L'), 'h2', 'c') + T(240, 70, 'V', '') + T(170, 135, 'E = V + Iₐ·Rₐ ,  Iₐ = I_f + I_L', 'a'));
+Object.assign(Le.parallel, {
+  simple: `<p>כשעומס גדל מעבר למה ששנאי אחד מסוגל, מחברים שני שנאים <b>במקביל</b>. שאלת המבחן: <b>איך העומס מתחלק ביניהם?</b></p>
+<p>שני השנאים מחוברים לאותם הדקים, ולכן נופל על שניהם אותו מפל מתח. שנאי עם <b>v<sub>sc</sub> קטן</b> ("קשיח") צריך פחות זרם כדי ליצור את המפל הזה, אז הוא לוקח <b>יותר</b> עומס יחסית לגודלו.</p>
+<p class="ana">🧑‍🤝‍🧑 שני אנשים סוחבים קורה. מי שהזרועות שלו פחות "קפיציות" (v<sub>sc</sub> נמוך) סוחב יותר מהמשקל.</p>
+<p>אם v<sub>sc</sub> שווים, העומס מתחלק בדיוק לפי ההספק הנקוב. זה המצב האידיאלי.</p>`,
+  sym: [['S<sub>n.α</sub>', 'ההספק הנקוב של שנאי α', 'kVA'], ['v<sub>sc</sub>', 'מתח קצר באחוזים = מפל המתח בזרם נקוב', '%'], ['S<sub>T</sub>', 'ההספק הכולל של העומס = P/cosφ', 'kVA'], ['β', 'מקדם עומס = S/S<sub>n</sub>', '—']],
+  quiz: [{ q: 'שני שנאים זהים בגודל. ל-A יש v<sub>sc</sub> = 4% ול-B יש 6%. מי לוקח יותר?', o: ['A', 'B', 'שווה', 'תלוי ב-cosφ'], a: 0, why: 'β<sub>A</sub>v<sub>A</sub> = β<sub>B</sub>v<sub>B</sub> ⇒ ל-A יש β גדול יותר.' }],
+});
+Object.assign(Le.regulation, {
+  simple: `<p>זו אותה שאלת ויסות ונצילות, רק <b>באחוזים</b>, כפי שנשאלה במבחני עבר: נתונים v<sub>sc</sub>% והפסדים נקובים, ולא R ו-X.</p>
+<p><b>v<sub>r</sub></b> הוא החלק ה"התנגדותי" של מתח הקצר (מהפסדי הנחושת), והרכיב <b>v<sub>x</sub></b> הוא החלק הריאקטיבי. יחד הם משולש: v<sub>sc</sub>² = v<sub>r</sub>² + v<sub>x</sub>².</p>
+<p class="ana">⚖️ הנצילות המקסימלית מתקבלת בעומס שבו הפסדי הנחושת (שגדלים כמו β²) שווים להפסדי הברזל (הקבועים).</p>`,
+  pic: picTrEq(),
+  sym: [['v<sub>sc</sub>', 'מתח קצר %', '%'], ['v<sub>r</sub>, v<sub>x</sub>', 'הרכיב ההתנגדותי / הריאקטיבי של v<sub>sc</sub>', '%'], ['Δv', 'מפל המתח באחוזים (≈ VR)', '%'], ['ΔP<sub>Cu.n</sub>', 'הפסדי נחושת בזרם נקוב', 'kW'], ['ΔP<sub>Fe</sub>', 'הפסדי ברזל', 'kW'], ['β', 'מקדם עומס S/S<sub>n</sub>', '—'], ['β<sub>opt</sub>', 'העומס עם נצילות מקסימלית', '—']],
+  quiz: [{ q: 'בעומס של חצי מהנקוב (β = 0.5), מה הפסדי הנחושת ביחס לנקובים?', o: ['רבע', 'חצי', 'אותו דבר', 'פי 2'], a: 0, why: 'P<sub>cu</sub> ∝ I² ∝ β².' }],
+});
+Object.assign(Le.equiv, { simple: `<p>מעגל L: ענף המגנוט (R<sub>C</sub> ∥ X<sub>φ</sub>) מועבר אל <b>הכניסה</b>, ומאחוריו הענף הטורי. זה קירוב טוב, כי זרם המגנוט קטן מאוד. כך זרם הריקם יוצא ישירות מ-V<sub>1</sub> וענף המקבילי.</p><p><b>v<sub>sc</sub></b> הוא כמה אחוזים מהמתח הנקוב נופלים על הענף הטורי בזרם נקוב.</p>`,
+  pic: picTrEq(), sym: [['R<sub>C</sub>, X<sub>φ</sub>', 'ענף המגנוט (סימון מבחני עבר = R<sub>μ</sub>, X<sub>μ</sub>)', 'Ω'], ['I<sub>o.c</sub>', 'זרם ריקם', 'A'], ['v<sub>s.c</sub>', 'מתח קצר באחוזים', '%'], ['I<sub>1n</sub>', 'זרם נקוב = S<sub>n</sub>/V<sub>1n</sub>', 'A']] });
+Object.assign(Le.trTests, { simple: `<p>אותם ניסויי ריקם וקצר, אבל בשנאי <b>תלת-פאזי</b>: עובדים <b>לפאזה</b>. מחלקים את ההספק ב-3, ובכוכב לוקחים V<sub>ph</sub> = V<sub>L</sub>/√3.</p><p>v<sub>sc</sub>% נותן ישר את |Z<sub>sc</sub>| = v<sub>sc</sub>·V<sub>ph</sub>/I<sub>n</sub>.</p>`, pic: picTrEq('sc'),
+  sym: [['V<sub>ph</sub>', 'מתח פאזה = V<sub>L</sub>/√3', 'V'], ['I<sub>n</sub>', 'זרם נקוב = S<sub>n</sub>/(√3V<sub>L</sub>)', 'A'], ['R<sub>sc</sub>, X<sub>sc</sub>', '= R<sub>K</sub>, X<sub>K</sub> לפאזה', 'Ω'], ['i<sub>0</sub>', 'זרם ריקם כחלק מהנקוב', '—']] });
+Object.assign(Le.trLoad, { pic: picTrEq(), simple: `<p>מתח המוצא הוא <b>מחלק מתח</b> בין הענף הטורי לבין העומס המופנה. ענף המגנוט יושב בכניסה (מעגל L), על V<sub>1</sub> ישירות, ולכן לא משפיע.</p>`,
+  sym: [["Z'<sub>L</sub>", 'העומס מופנה לראשוני = a²Z<sub>L</sub>', 'Ω'], ['Z<sub>sc</sub>', 'R<sub>1</sub> + R\'<sub>2</sub> + j(X<sub>1</sub> + X\'<sub>2</sub>)', 'Ω'], ['a', 'V<sub>1n</sub>/V<sub>2n</sub>', '—']],
+  graph(box) {
+    const P = plot(box, { x: [-90, 90], y: [560, 620], xl: 'זווית עומס °', yl: 'V₂', xt: [[-90, '−90 קיבולי'], [0, '0'], [90, 'השראי 90']], yt: [[560, '560'], [600, '600'], [620, '620']] });
+    sliders(box, [{ k: 'th', label: 'זווית העומס °', min: -90, max: 90, step: 1, v: 45 }], v => {
+      P.clear(); const V2 = th => { const Z = Cx.p(14.14 * 16, th), r = Cx.abs(Z) / Cx.abs(Cx.add(Z, [4.26, 7.89])); return 2400 * r / 4; };
+      P.fn(V2, 'c1', -90, 90); P.hline(600, 'נקוב'); P.dot(v.th, V2(v.th), fmt(V2(v.th)) + 'V');
+      return `|Z<sub>L</sub>| = 14.1Ω בזווית ${v.th}° ⇒ V<sub>2</sub> = ${fmt(V2(v.th))}V<br>${V2(v.th) > 600 ? 'מעל הנקוב: עומס קיבולי מעלה מתח' : 'מתחת לנקוב'}`;
+    });
+  } });
+Object.assign(Le.induction, { pic: picImEq(), simple: `<p>כשלא נותנים מעגל תמורה אלא רק נתוני לוחית (P<sub>n</sub>, n<sub>n</sub>, λ), משתמשים ב<b>נוסחת קלוס</b>. היא מתארת את כל עקומת המומנט בעזרת שני מספרים בלבד: T<sub>max</sub> ו-s<sub>cr</sub>.</p><p><b>λ = M<sub>max</sub>/M<sub>n</sub></b> הוא כושר העמסת היתר: פי כמה מהנקוב המנוע יכול לתת לרגע לפני שהוא נתקע.</p>`,
+  sym: [['M<sub>n</sub>', 'מומנט נקוב = P<sub>n</sub>/ω<sub>n</sub> (= T)', 'N·m'], ['λ', 'M<sub>max</sub>/M<sub>n</sub>', '—'], ['n<sub>s</sub>', 'מהירות סינכרונית (= n<sub>1</sub>)', 'rpm'], ['s<sub>n</sub>', 'החלקה נקובה', '—'], ['s<sub>cr</sub>', 'החלקה קריטית', '—']],
+  quiz: [{ q: 'n<sub>n</sub> = 1425 rpm, 50Hz. מה s<sub>n</sub>?', o: ['0.05', '0.025', '0.95', '0.075'], a: 0, why: 'n<sub>s</sub> = 1500 ⇒ (1500 − 1425)/1500 = 0.05.' }] });
+Object.assign(Le.inductionLoad, { pic: picImEq(), simple: `<p>המומנט שהמנוע נותן <b>שווה</b> למומנט שהעומס דורש. אם העומס יורד, המנוע מאיץ קצת (s קטן) עד שהמומנט שלו יורד ומשתווה לעומס.</p><p>פותרים את נוסחת קלוס עבור s, ובוחרים את השורש <b>הקטן</b>, זה שבאזור היציב.</p>`, sym: [['M<sub>L</sub>', 'מומנט העומס', 'N·m'], ['r', 'M<sub>max</sub>/M<sub>L</sub>', '—']] });
+Object.assign(Le.imCircuit, { pic: picImEq(), simple: `<p>במעגל התמורה, הרוטור מיוצג על ידי <b>R'<sub>2</sub>/s</b>. ככל שהמנוע מהיר יותר (s קטן), הנגד הזה גדל, ולכן הזרם קטן. בהתנעה (s = 1) הנגד קטן והזרם ענק, פי 5–7 מהנקוב.</p><p>הזרם הכולל הוא <b>סכום וקטורי</b> של זרם המגנוט (כמעט ריאקטיבי טהור) וזרם הרוטור. לכן בעומס קל ה-cosφ גרוע.</p>`,
+  sym: [['R\'<sub>2</sub>/s', 'הנגד שמייצג את הרוטור + העומס המכני', 'Ω'], ['I<sub>o.c</sub>', 'זרם ריקם (מגנוט)', 'A'], ['I<sub>ph.n</sub>', 'זרם פאזה נקוב', 'A'], ['cosφ<sub>n</sub>', 'מקדם הספק נקוב', '—'], ['R<sub>C</sub>, x<sub>φ</sub>', 'ענף המגנוט (= R<sub>μ</sub>, X<sub>μ</sub>)', 'Ω']],
+  graph(box) {
+    const P = plot(box, { x: [0, 1], y: [0, 1.6], xl: 's', yl: '', xt: [[0, '0'], [0.5, '0.5'], [1, '1 התנעה']], yt: [[0, '0'], [0.5, '0.5'], [1, '1']] });
+    sliders(box, [{ k: 's', label: 's', min: 0.005, max: 1, step: 0.005, v: 0.06 }], v => {
+      P.clear(); const V = 1328, f = s => { const Rt = 1.08 + 2.14 / s, Z = Math.hypot(Rt, 11.38), re = V * Rt / Z / Z + V / 2000, im = -V * 11.38 / Z / Z - V / 150; return [Math.hypot(re, im), re / Math.hypot(re, im)]; };
+      P.fn(s => f(s)[0] / 100, 'c1', 0.005, 1); P.fn(s => f(s)[1], 'c2', 0.005, 1); const [I, c] = f(v.s); P.dot(v.s, I / 100, fmt(I) + 'A', 'c1'); P.dot(v.s, c, 'cos ' + fmt(c, 2), 'c2', 6, 14);
+      return `<span class="c1t">כתום: זרם/100</span> · <span class="c2t">טורקיז: cosφ</span><br>s = ${v.s}: I = ${fmt(I)}A, cosφ = ${fmt(c)}`;
+    });
+  } });
+Object.assign(Le.rotorRes, { pic: picImEq('נגד חיצוני מתווסף ל-R₂ דרך טבעות ההחלקה'), simple: `<p>ברוטור מלופף אפשר לחבר נגדים חיצוניים דרך טבעות החלקה. נגד גדול יותר ⇒ s<sub>cr</sub> זז לכיוון 1 ⇒ <b>מומנט התנעה גדול</b> וזרם התנעה קטן, ו-T<sub>max</sub> לא משתנה.</p><p>אחרי ההתנעה מוציאים את הנגדים, כדי שההפסדים ברוטור (s·P<sub>em</sub>) לא יישארו גדולים.</p>`,
+  sym: [['R<sub>ad</sub>', 'נגד נוסף בצד הרוטור', 'Ω'], ['a<sub>s/r</sub>', 'יחס הליפופים סטטור/רוטור', '—'], ["s'<sub>cr</sub>", 'ההחלקה הקריטית החדשה', '—']] });
+Object.assign(Le.dcSelf, { pic: picDC, simple: `<p>גנרטור DC: רוטור שמסתובב בשדה מגנטי מייצר כא"מ <b>E</b>, שיחסי לשטף ולמהירות. ב<b>עירור עצמי מקבילי</b> הגנרטור מזין בעצמו את סליל העירור (R<sub>f</sub>), שמחובר במקביל לעומס.</p><p>הזרם ברוטור מתפצל לשניים: I<sub>a</sub> = I<sub>f</sub> + I<sub>L</sub>. המתח בהדקים נמוך מ-E בגלל המפל על R<sub>a</sub>.</p>`,
+  sym: [['E', 'הכא"מ המושרה ברוטור', 'V'], ['R<sub>a</sub>', 'התנגדות הרוטור (עוגן)', 'Ω'], ['R<sub>f</sub>, I<sub>f</sub>', 'התנגדות וזרם סליל העירור', 'Ω, A'], ['I<sub>a</sub>', 'זרם העוגן = I<sub>f</sub> + I<sub>L</sub>', 'A'], ['V', 'מתח ההדקים', 'V']] });
+Object.assign(Le.dcParallel, { pic: picDC, sym: [['E<sub>1</sub>, E<sub>2</sub>', 'כא"מ של כל גנרטור', 'V'], ['R<sub>a1</sub>, R<sub>a2</sub>', 'התנגדויות העוגן', 'Ω'], ['V<sub>o</sub>', 'המתח המשותף על העומס', 'V'], ['P<sub>L</sub>', 'הספק העומס = V²/R<sub>L</sub>', 'W']],
+  simple: `<p>שני גנרטורים במקביל "רואים" את <b>אותו מתח</b>. כל אחד דוחף זרם לפי כמה ה-E שלו גבוה מהמתח המשותף: I = (E − V)/R<sub>a</sub>.</p><p>גנרטור עם E נמוך מדי יקבל זרם <b>הפוך</b> ויעבוד כמנוע.</p>` });
+Object.assign(Le.synch, { simple: `<p>גנרטור סינכרוני: הרוטור הוא אלקטרומגנט שמסתובב <b>בדיוק</b> במהירות השדה (s = 0). כל פאזה שלו מתנהגת כמו מקור E מאחורי ריאקטנס X.</p><p>מקבלים E = V + jXI, וזווית העומס δ היא הזווית בין E ל-V. ככל שההספק גדל, δ גדלה.</p>`,
+  sym: [['E<sub>ph</sub>', 'הכא"מ הפנימי לפאזה', 'V'], ['X', 'ריאקטנס סינכרוני', 'Ω'], ['δ', 'זווית העומס (בין E ל-V)', '°'], ['V<sub>ph</sub>', 'מתח פאזה בהדקים', 'V']] });
+
 const SB_URL = 'https://enhqzgjqqyubgfysnjib.supabase.co';
 const SB_KEY = 'sb_publishable_w3aqbIxj_ECmMOUhANPebw_thGqD9o1';
 const sb = supabase.createClient(SB_URL, SB_KEY);
@@ -1566,33 +2266,74 @@ function courseView(id) {
       `<button class="topic" data-t="${k}"><span>${t.title}</span><em>${pctTxt(progress[id]?.[k])}</em></button>`).join('')).join('');
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${C.name}</h1></header>
     <div class="row"><button class="primary" id="weak">תרגול נקודות חולשה</button><button class="primary" id="exam">מבחן מלא (${C.minutes} דק')</button></div>
-    <div class="row"><button class="ghost" id="strat">🎯 איך נראה המבחן</button><button class="ghost" id="sheet">📄 דף נוסחאות</button><button class="ghost" id="mat">📚 חומרים</button></div>
-    <p class="hint">בחר נושא: 📖 שיעור עם גרף ופתרון מודרך, ואז ✏️ תרגול.</p>${groups}`;
+    <div class="row"><button class="ghost" id="strat">🎯 איך נראה המבחן</button><button class="ghost" id="sheet">📄 דף נוסחאות</button><button class="ghost" id="mat">📚 חומרים</button>${Object.values(LESSONS[id] || {}).some(L => L.sym) ? '<button class="ghost" id="gloss">🔣 מילון סימנים</button>' : ''}</div>
+    <p class="hint">הנושאים מסודרים לפי סדר הלימוד. בכל נושא: 💡 הסבר פשוט ושרטוט → 🔣 סימנים → 🧪 סימולציה → 📐 נוסחאות → 👣 דוגמה → ✅ בדיקה עצמית → ✏️ תרגול.</p>${groups}`;
   $('#back').onclick = homeView;
   $('#sheet').onclick = () => sheetView(id);
   $('#mat').onclick = () => materialsView(id);
+  if ($('#gloss')) $('#gloss').onclick = () => glossaryView(id);
   $('#strat').onclick = () => { app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>איך נראה המבחן</h1></header><div class="card lesson">${STRATEGY[id]}</div>`; $('#back').onclick = () => courseView(id); isolateMath(app()); scrollTo(0, 0); };
   $('#weak').onclick = () => practice(id, weakest(id));
   $('#exam').onclick = () => examView(id);
   app().querySelectorAll('[data-t]').forEach(b => b.onclick = () => lessonView(id, b.dataset.t));
 }
-function lessonView(id, k) {
+// Lesson = guided steps, one card at a time. Sections appear only if the lesson has their data.
+const SECTIONS = [
+  ['idea', '💡 הרעיון', L => L.simple || L.pic],
+  ['sym', '🔣 מה כל סימן', L => L.sym],
+  ['sim', '🧪 סימולציה', L => L.graph],
+  ['vid', '🎬 סרטון', L => L.video],
+  ['f', '📐 נוסחאות', () => true],
+  ['ex', '👣 דוגמה פתורה', () => true],
+  ['chk', '✅ בדוק את עצמך', () => true],
+];
+const symHTML = rows => `<div class="syms">${rows.map(([sy, what, unit]) => `<div class="sym"><b>${sy}</b><span>${what}</span>${unit ? `<em>${unit}</em>` : ''}</div>`).join('')}</div>`;
+function quizHTML(Q) {
+  return (Q || []).map((q, i) => `<div class="qz" data-q="${i}"><p class="q"><b>${i + 1}.</b> ${q.q}</p><div class="mc">${shuffleArr(q.o.map((t, j) => [t, j])).map(([t, j]) => `<button class="choice" data-j="${j}"><span>${t}</span></button>`).join('')}</div><p class="why" hidden>${q.why || ''}</p></div>`).join('');
+}
+function lessonView(id, k, start = 0) {
   leave();
   const t = COURSES[id].topics[k], L = LESSONS[id][k], q = t.gen(L.ex.inputs), steps = q.sol.split('<br>');
-  app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${t.title}</h1></header>
-    <div class="card lesson"><p class="intro">${L.intro}</p>${L.body}</div>
-    ${L.video ? `<div class="card"><h3>🎬 סרטון הסבר</h3><div class="vid"><div id="vscreen"></div><p id="vcap" class="vcap"></p></div>
-      <div class="vdots">${L.video.map((_, i) => `<span data-i="${i}"></span>`).join('')}</div>
-      <div class="row"><button class="ghost" id="vprev">⏮</button><button class="primary" id="vplay">▶ נגן</button><button class="ghost" id="vnext">⏭</button><button class="ghost" id="vtts" title="הקראה">🔇</button></div></div>` : ''}
-    ${L.graph ? '<div class="card"><h3>📈 גרף אינטראקטיבי – הזז את המחוונים</h3><div id="g"></div></div>' : ''}
-    <div class="card"><h3>🎬 פתרון מודרך – ${L.ex.src}</h3><p class="q">${nb(q.text)}</p>
+  const secs = SECTIONS.filter(([, , has]) => has(L));
+  const body = {
+    idea: `${L.simple ? `<div class="simple">${L.simple}</div>` : ''}${L.pic ? `<div class="pic">${L.pic}</div>` : ''}`,
+    sym: L.sym ? `<p class="hint">כל אות בנוסחאות של הנושא – מה היא אומרת ובאיזו יחידה מודדים אותה.</p>${symHTML(L.sym)}` : '',
+    sim: '<p class="hint">הזז את המחוונים ותראה מה קורה. נסה לנחש לפני שאתה מזיז.</p><div id="g"></div>',
+    vid: `<div class="vid"><div id="vscreen"></div><p id="vcap" class="vcap"></p></div>
+      <div class="vdots">${(L.video || []).map((_, i) => `<span data-i="${i}"></span>`).join('')}</div>
+      <div class="row"><button class="ghost" id="vprev">⏮</button><button class="primary" id="vplay">▶ נגן</button><button class="ghost" id="vnext">⏭</button><button class="ghost" id="vtts" title="הקראה">🔇</button></div>`,
+    f: `<div class="lesson"><p class="intro">${L.intro}</p>${L.body}</div>`,
+    ex: `<h3>${L.ex.src}</h3><p class="q">${nb(q.text)}</p>
       <ol id="steps" class="steps">${steps.map((s, i) => `<li data-i="${i}">${nb(s)}</li>`).join('')}</ol>
-      <div class="row"><button class="ghost" id="prev">◀ הקודם</button><button class="primary" id="play">▶ הפעל</button><button class="ghost" id="nextS">הבא ▶</button></div></div>
-    <div class="card"><h3>⚠ טעויות נפוצות</h3><ul>${L.traps.map(x => `<li>${x}</li>`).join('')}</ul><h3>📋 במבחנים</h3><p>${L.exam}</p></div>
-    <button class="primary wide" id="go">✏️ לתרגול – ${pctTxt(progress[id]?.[k])} דיוק עד עכשיו</button>`;
+      <div class="row"><button class="ghost" id="prev">◀ הקודם</button><button class="primary" id="play">▶ הפעל</button><button class="ghost" id="nextS">הבא ▶</button></div>`,
+    chk: `${L.quiz ? quizHTML(L.quiz) : ''}<h3>⚠ טעויות נפוצות</h3><ul>${L.traps.map(x => `<li>${x}</li>`).join('')}</ul><h3>📋 במבחנים</h3><p>${L.exam}</p>`,
+  };
+  app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>${t.title}</h1></header>
+    <nav class="pills">${secs.map(([s, name], i) => `<button data-s="${i}">${name}</button>`).join('')}</nav>
+    ${secs.map(([s, name], i) => `<section class="card sec" data-s="${i}" hidden><h3 class="sech">${i + 1}/${secs.length} · ${name}</h3>${body[s]}</section>`).join('')}
+    <div class="row"><button class="ghost" id="sprev">◀</button><button class="primary" id="snext"></button></div>
+    <button class="ghost wide" id="go">✏️ לתרגול – ${pctTxt(progress[id]?.[k])} דיוק עד עכשיו</button>`;
   isolateMath(app());
   if (L.graph) L.graph($('#g'));
   if (L.video) videoPlayer(L);
+  let si = Math.min(start, secs.length - 1);
+  const showSec = () => {
+    app().querySelectorAll('.sec').forEach(e => e.hidden = +e.dataset.s !== si);
+    app().querySelectorAll('.pills button').forEach(e => e.className = +e.dataset.s === si ? 'on' : +e.dataset.s < si ? 'seen' : '');
+    app().querySelector('.pills .on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    $('#sprev').disabled = si === 0;
+    $('#snext').textContent = si < secs.length - 1 ? `הבא: ${secs[si + 1][1]} ▶` : '✏️ לתרגול';
+    scrollTo(0, 0);
+  };
+  app().querySelectorAll('.pills button').forEach(b => b.onclick = () => { si = +b.dataset.s; showSec(); });
+  $('#sprev').onclick = () => { si = Math.max(0, si - 1); showSec(); };
+  $('#snext').onclick = () => si < secs.length - 1 ? (si++, showSec()) : practice(id, [k]);
+  app().querySelectorAll('.qz').forEach(z => z.querySelectorAll('.choice').forEach(c => c.onclick = () => {
+    const ok = +c.dataset.j === L.quiz[+z.dataset.q].a;
+    z.querySelectorAll('.choice').forEach(x => { x.disabled = true; if (+x.dataset.j === L.quiz[+z.dataset.q].a) x.classList.add('right'); });
+    if (!ok) c.classList.add('wrong');
+    const w = z.querySelector('.why'); w.hidden = false; w.innerHTML = (ok ? '✔ נכון. ' : '✘ לא בדיוק. ') + w.innerHTML;
+  }));
   let cur = 0;
   const lis = [...app().querySelectorAll('#steps li')];
   const show = () => { lis.forEach((li, i) => li.className = i < cur ? 'on' : ''); $('#prev').disabled = cur === 0; $('#nextS').disabled = cur === lis.length; };
@@ -1605,10 +2346,21 @@ function lessonView(id, k) {
     $('#play').textContent = '⏸ עצור'; cur++; show();
     timer = setInterval(() => { if (cur >= lis.length) return stop(); cur++; show(); }, 2500);
   };
-  show();
+  show(); showSec();
   $('#back').onclick = () => courseView(id);
   $('#go').onclick = () => practice(id, [k]);
-  scrollTo(0, 0);
+}
+// All symbols of a course in one searchable list
+function glossaryView(id) {
+  leave();
+  const seen = new Map();
+  Object.entries(LESSONS[id]).forEach(([k, L]) => (L.sym || []).forEach(r => { if (!seen.has(r[0])) seen.set(r[0], [...r, COURSES[id].topics[k]?.title || '']); }));
+  const rows = [...seen.values()];
+  app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>🔣 מילון סימנים</h1></header>
+    <div class="card"><input id="fq" class="search" placeholder="חיפוש: שטף, החלקה, Φ, μ…"><p class="hint">${rows.length} סימנים מכל השיעורים. לחיצה על שורה פותחת את השיעור.</p><div id="gl"></div></div>`;
+  const draw = f => { $('#gl').innerHTML = symHTML(rows.filter(r => !f || (r[0] + r[1] + r[3]).toLowerCase().includes(f.toLowerCase()))); isolateMath($('#gl')); };
+  draw(''); $('#fq').oninput = e => draw(e.target.value);
+  $('#back').onclick = () => courseView(id);
 }
 // Animated lesson: scenes of {t: caption, d: draw(plot)}. Captions always shown; optional Hebrew narration.
 function videoPlayer(L) {
