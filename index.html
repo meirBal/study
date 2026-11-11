@@ -69,6 +69,7 @@ code { background:var(--bg); padding:2px 6px; border-radius:6px; word-break:brea
 .plot .fill { stroke:none; fill-opacity:.18; } .plot .fill.c2 { fill:#4fc3c3; } .plot .fill.c1 { fill:var(--acc); }
 .plot .bar.b0 { fill:var(--acc); } .plot .bar.b1 { fill:#4fc3c3; } .plot .bar.b2 { fill:#8f8fe0; } .plot .bar.bad { fill:var(--bad); }
 .plot .box { fill:var(--bg); stroke:var(--tx); }
+.plot .px { fill:none; stroke:var(--tx); stroke-width:2; } .plot .px.zo { fill:var(--bg); } .plot .fill.bad { fill:var(--bad); fill-opacity:.1; }
 .c1t { color:var(--acc); } .c2t { color:#4fc3c3; }
 .sliders label { display:grid; grid-template-columns:110px 1fr 70px; align-items:center; gap:8px; margin-top:8px; font-size:14px; }
 .sliders input { width:100%; accent-color:var(--acc); }
@@ -2255,6 +2256,602 @@ Object.assign(Lg.invariance, {
   simple: `<p>מגבירים אות (aX) או מזיזים אותו (+b). איזה מדד קשר נשאר אותו דבר?</p><p><b>ρ</b> לא משתנה, חוץ מסימן אם a < 0. <b>Cov</b> מושפעת מהגבר ולא מהזזה. <b>Corr = E{XY}</b> מושפעת משניהם. לכן ρ הוא המדד ה"הוגן" להשוואת אותות (דוגמת ה-ECG).</p>`,
   sym: [['ρ', 'אדיש להגבר ולהזזה', '—'], ['Cov', 'מושפעת מהגבר בלבד', '—'], ['Corr', 'E{XY}, מושפעת מהכל', '—']],
   quiz: [{ q: 'מגבירים את X פי 3. מה קורה ל-ρ(X,Y)?', o: ['לא משתנה', 'גדל פי 3', 'גדל פי 9', 'יורד'], a: 0, why: 'ה-3 מופיע במונה ובמכנה ומצטמצם.' }] });
+
+// ---------------- בקרה א ----------------
+// Root Locus and Routh–Hurwitz, built from the notes of the 11.11.2026 lecture. Notation as in the notes: L(s) = K·N(s)/D(s), n poles, m zeros,
+// σas, θas, Kc, ωc; 0 < K < ∞ is negative feedback. Steps 1–8 are in the order used when the exam question was solved in class.
+// Parts marked "השלמה" (departure from a double pole, break-in point) are not in the notes; they are only there to finish the full sketch.
+// Polynomials are coefficient arrays, highest power first. An open loop is given by its real poles p[] and real zeros z[].
+const fm = x => fmt(x).replace('-', '−');
+const pmul = (a, b) => { const o = Array(a.length + b.length - 1).fill(0); a.forEach((x, i) => b.forEach((y, j) => o[i + j] += x * y)); return o; };
+// a root list may hold [re, im] for the complex pair re ± j·im
+const pfrom = rs => rs.reduce((q, r) => pmul(q, Array.isArray(r) ? [1, -2 * r[0], r[0] ** 2 + r[1] ** 2] : [1, -r]), [1]);
+const pder = a => a.slice(0, -1).map((x, i) => x * (a.length - 1 - i));
+const psub = (a, b) => { const n = Math.max(a.length, b.length), A = [...Array(n - a.length).fill(0), ...a], B = [...Array(n - b.length).fill(0), ...b]; return A.map((x, i) => x - B[i]); };
+const pval = (a, s) => a.reduce((y, c) => y * s + c, 0);
+const pstr = a => a.map((c, i) => [c, a.length - 1 - i]).filter(([c]) => Math.abs(c) > 1e-12).map(([c, k], j) => { const m = Math.abs(c), t = (m === 1 && k ? '' : fmt(m)) + (k ? 's' + ['', '', '²', '³', '⁴', '⁵'][k] : ''); return (c < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) + t; }).join('');
+// roots of a real polynomial by Durand–Kerner → [[re, im], …]
+function polyRoots(c) {
+  const n = c.length - 1, a = c.map(x => x / c[0]);
+  let r = Array.from({ length: n }, (_, i) => Cx.p(1 + Math.max(...a.map(Math.abs)), 360 * i / n + 23));
+  for (let it = 0; it < 120; it++) r = r.map((s, i) => {
+    let num = [1, 0], den = [1, 0];
+    for (let k = 1; k <= n; k++) num = Cx.add(Cx.mul(num, s), [a[k], 0]);
+    r.forEach((w, j) => { if (j !== i) den = Cx.mul(den, Cx.sub(s, w)); });
+    const d = Cx.div(num, den); return isFinite(d[0] + d[1]) ? Cx.sub(s, d) : s;
+  });
+  return r;
+}
+// closed-loop poles = roots of D(s) + K·N(s)
+const clPoles = (p, z, K) => { const D = pfrom(p), N = pfrom(z), off = D.length - N.length; return polyRoots(D.map((d, i) => d + (i >= off ? K * N[i - off] : 0))); };
+const rlFac = rs => { const c = new Map(); rs.forEach(r => c.set(r, (c.get(r) || 0) + 1)); return [...c].map(([r, k]) => (r === 0 ? 's' : `(s ${r < 0 ? '+' : '−'} ${Math.abs(r)})`) + (k > 1 ? `<sup>${k}</sup>` : '')).join(''); };
+const rlL = (p, z) => `L(s) = K${rlFac(z)} / [${rlFac(p)}]`;
+const rlList = a => a.length ? a.map(fm).join(', ') : 'אין';
+// inside a solution step: formula lines in their own LTR block, and a Routh table (rows of [power, …cells]).
+// Lines are joined with <br/> on purpose: a plain <br> is what separates the steps of a solution.
+const blk = (...l) => `<div class="f">${l.join('<br/>')}</div>`;
+const rhT = rows => `<table class="t">${rows.map(([h, ...c]) => `<tr><th>${h}</th>${c.map(x => `<td>${x}</td>`).join('')}</tr>`).join('')}</table>`;
+// real-axis segments of the RL between x1 and x2: an odd number of poles + zeros to the right (K > 0), an even number for K < 0
+const rlRealSegs = (p, z, x1, x2, pos = false) => { const all = [...p, ...z].filter(v => !Array.isArray(v)), xs = [x1, ...[...new Set(all)].sort((a, b) => a - b).filter(v => v > x1 && v < x2), x2];
+  return xs.slice(1).map((b, i) => [xs[i], b]).filter(([a, b]) => all.filter(v => v > (a + b) / 2).length % 2 === (pos ? 0 : 1)); };
+// step 9: numerator of dK/ds, with K = −D/N ⇒ D′N − DN′ = 0 (leading coefficient made positive)
+const rlNum = (p, z) => { const D = pfrom(p), N = pfrom(z), n = psub(pmul(pder(D), N), pmul(D, pder(N))); while (n.length > 1 && Math.abs(n[0]) < 1e-12) n.shift(); return n[0] < 0 ? n.map(x => -x) : n; };
+// break-away / break-in points: real roots of rlNum that are not poles or zeros and give K of the right sign (K > 0, or K < 0 for positive feedback)
+function rlBreaks(p, z, pos = false) {
+  const D = pfrom(p), N = pfrom(z), pz = [...p, ...z].filter(v => !Array.isArray(v));
+  return polyRoots(rlNum(p, z)).filter(r => Math.abs(r[1]) < 1e-6 && pz.every(v => Math.abs(v - r[0]) > 1e-4)).map(r => ({ s: r[0], K: -pval(D, r[0]) / pval(N, r[0]) }))
+    .filter(b => pos ? b.K < 0 : b.K > 0).sort((a, b) => b.s - a.s);
+}
+
+const RLSYS = [{ p: [0, 2, 2], z: [-1, -1] }, { p: [0, -2, -4], z: [] }, { p: [0, -1, -5], z: [-3] }, { p: [-1, -2, -3, -6], z: [] }, { p: [0, -4, -6], z: [-2] }, { p: [0, 0, -8], z: [-2] }, { p: [0, 1, -6], z: [-2] }, { p: [0, -3], z: [] }, { p: [0, -2, -6], z: [-4] }, { p: [-1, -3], z: [-5] }];
+const control = {
+  name: 'בקרה א', minutes: 180,
+  groups: { rl: 'Root Locus: שלבי השרטוט (שיעור 11.11)', stab: 'יציבות וחיתוך עם הציר המדומה (שיעור 11.11)' },
+  topics: {
+    rlIdea: { group: 'rl', title: 'הרעיון: מאיפה יוצאים הענפים ולאן הם מגיעים', gen(o = {}) {
+      const kind = o.kind ?? pick(['bank', 'bank', 'ends', 'count']);
+      if (kind !== 'bank') {
+        const S = o.p ? o : pick(RLSYS), n = S.p.length, m = S.z.length;
+        const steps = `קטבים (שורשי המכנה): ${rlList(S.p)} ⇒ n = ${n}<br>אפסים (שורשי המונה): ${rlList(S.z)} ⇒ m = ${m}`;
+        if (kind === 'count') return { text: `${rlL(S.p, S.z)}. כמה ענפים יש ב-RL של המערכת?`, ...mc(Math.max(n, m), [n - m, n + m, m, n + 1, n - 1]),
+          sol: `${steps}<br>מספר הענפים = max(n, m) = <b>${Math.max(n, m)}</b><br>כל ענף יוצא מקוטב אחד של החוג הפתוח (K = 0)` };
+        return { text: `${rlL(S.p, S.z)}. כש-K → ∞, כמה ענפים של ה-RL הולכים לאינסוף?`, ...mc(n - m, [n, m, n + m, n - m + 1, n - m + 2]),
+          sol: `${steps}<br>K = 0: יוצאים מהקטבים ${n} ענפים<br>K → ∞: ${m ? `מסתיימים באפסים ${m} ענפים` : 'אין אפסים להגיע אליהם'}<br>נשארים n − m = <b>${n - m}</b> ענפים, והם הולכים לאינסוף לאורך אסימפטוטות` };
+      }
+      const bank = [
+        ['ב-K = 0, מאיפה ענפי ה-RL יוצאים?', 'מקטבי החוג הפתוח', ['מאפסי החוג הפתוח', 'מהראשית', 'מנקודת היציאה של האסימפטוטות'], 'ב-K = 0 המשוואה K·N(s) + D(s) = 0 הופכת ל-D(s) = 0, ושורשי D הם קטבי החוג הפתוח.'],
+        ['כש-K → ∞, לאן ענפי ה-RL מגיעים?', 'לאפסי החוג הפתוח, והעודפים לאינסוף', ['לקטבי החוג הפתוח', 'כולם לראשית', 'כולם לציר המדומה'], 'מחלקים ב-K: N(s) + D(s)/K = 0. כש-K → ∞ נשאר N(s) = 0, כלומר האפסים. אם n > m נשארים n − m ענפים בלי אפס, והם הולכים לאינסוף לאורך אסימפטוטות.'],
+        ['L(s) = K·N(s)/D(s) בחוג סגור עם משוב שלילי. מהי המשוואה האופיינית?', 'K·N(s) + D(s) = 0', ['K·N(s) − D(s) = 0', 'D(s) = 0', 'K·N(s) = 0'], 'T = L/(1 + L) = K·N/(K·N + D). קטבי החוג הסגור הם שורשי המכנה: K·N(s) + D(s) = 0.'],
+        ['סביב איזה ישר ה-RL תמיד סימטרי?', 'הציר הממשי σ', ['הציר המדומה jω', 'הישר σ = σ<sub>as</sub>', 'אין סימטריה הכרחית'], 'למשוואה האופיינית מקדמים ממשיים, ולכן שורשים מרוכבים באים בזוגות צמודים. מהשיעור: הסימטריה עוזרת לבדוק שהשרטוט נכון.'],
+        ['איזה תחום של K מתאר משוב שלילי?', '0 < K < ∞', ['−∞ < K < 0', '−1 < K < 1', 'כל K ממשי'], 'בסימון של השיעור: 0 < K < ∞ משוב שלילי, −∞ < K < 0 משוב חיובי.'],
+        ['הנקודה s<sub>0</sub> נמצאת על ה-RL. מה זה אומר?', 'קיים K שעבורו s<sub>0</sub> הוא קוטב של החוג הסגור', ['s<sub>0</sub> הוא קוטב של החוג הפתוח', 'המערכת יציבה לכל K', 's<sub>0</sub> הוא אפס של החוג הסגור'], 'ה-RL הוא אוסף כל שורשי K·N + D = 0 לכל ערכי K. כל K נותן n שורשים, וכל נקודה על העקום שייכת ל-K מסוים.'],
+      ];
+      const [q, c, w, ex] = bank[o.i ?? Math.floor(Math.random() * bank.length)];
+      return { text: q, ...mcText(c, w), sol: ex };
+    } },
+    rlAsym: { group: 'rl', title: 'אסימפטוטות: כמה, מאיפה ובאיזו זווית', gen(o = {}) {
+      const S = o.p ? o : pick(RLSYS), n = S.p.length, m = S.z.length, sp = S.p.reduce((a, b) => a + b, 0), sz = S.z.reduce((a, b) => a + b, 0), q = n - m, sas = (sp - sz) / q;
+      const th = Array.from({ length: q }, (_, i) => (2 * i + 1) * 180 / q);
+      return { text: `${rlL(S.p, S.z)} במשוב שלילי (0 < K < ∞). חשבו את מספר האסימפטוטות, את נקודת היציאה שלהן σ<sub>as</sub> ואת הזווית הראשונה θ<sub>0</sub> (עבור i = 0).`,
+        parts: [{ label: 'n − m', ans: q, unit: '' }, { label: 'σ<sub>as</sub>', ans: sas, unit: '' }, { label: 'θ<sub>0</sub>', ans: th[0], unit: '°', units: U('°', 'rad') }],
+        sol: `קטבים: ${rlList(S.p)} ⇒ n = ${n}, Σp = ${fm(sp)}<br>אפסים: ${rlList(S.z)} ⇒ m = ${m}, Σz = ${fm(sz)}<br>מספר האסימפטוטות = n − m = <b>${q}</b><br>σ<sub>as</sub> = (Σp − Σz)/(n − m) = (${fm(sp)} − ${sz < 0 ? `(${fm(sz)})` : fm(sz)})/${q} = <b>${fm(sas)}</b><br>θ<sub>i</sub> = (2i + 1)·180°/(n − m) ⇒ θ<sub>0</sub> = 180°/${q} = <b>${fm(th[0])}°</b><br>${q > 1 ? `כל הזוויות: ${th.map(t => fm(t) + '°').join(', ')}` : 'אסימפטוטה אחת בזווית 180°: הציר הממשי השלילי עצמו'}` };
+    } },
+    rlReal: { group: 'rl', title: 'ענפים על הציר הממשי: כלל האי-זוגי', gen(o = {}) {
+      const S = o.p ? o : pick(RLSYS), all = [...S.p, ...S.z], pos = (o.fb ?? pick(['neg', 'neg', 'pos'])) === 'pos';
+      const xs = [...new Set(all)].sort((a, b) => a - b), x = o.x ?? pick([xs[0] - 1, ...xs.slice(1).map((v, i) => (v + xs[i]) / 2), xs.at(-1) + 1]);
+      const right = all.filter(v => v > x).sort((a, b) => a - b), c = right.length, on = (c % 2 === 1) !== pos;
+      const ans = (yes, k) => `${yes ? 'כן' : 'לא'}, מימין לה ${k} קטבים ואפסים`;
+      return { text: `${rlL(S.p, S.z)} במשוב ${pos ? 'חיובי (−∞ < K < 0)' : 'שלילי (0 < K < ∞)'}. האם ה-RL עובר בנקודה σ = ${fm(x)} שעל הציר הממשי?`,
+        ...mcText(ans(on, c), [ans(!on, c), ans(on, all.length - c), ans(!on, all.length - c), ans(on, c + 1), ans(!on, c + 1)]),
+        sol: `הקטבים: ${rlList(S.p)}. האפסים: ${rlList(S.z)}<br>מימין לנקודה σ = ${fm(x)} ${c ? `נמצאים ${rlList(right)}` : 'אין קטבים או אפסים'}. סך הכול ${c}, מספר ${c % 2 ? 'אי-זוגי' : 'זוגי'}. קוטב או אפס כפול נספר פעמיים<br>${pos ? 'משוב חיובי (K < 0): הכלל מתהפך, וענף קיים כשהמספר זוגי' : 'משוב שלילי (K > 0): ענף קיים כשהמספר אי-זוגי'}<br><b>${on ? 'הנקודה על ה-RL' : 'הנקודה לא על ה-RL'}</b>` };
+    } },
+    rlBreak: { group: 'rl', title: 'שלב 9: נקודות פריצה וחדירה', gen(o = {}) {
+      const S = o.p ? o : pick(RLSYS.filter(T => rlBreaks(T.p, T.z).length)), bs = rlBreaks(S.p, S.z), B = bs[o.i ?? Math.floor(Math.random() * bs.length)];
+      const D = pfrom(S.p), N = pfrom(S.z), num = rlNum(S.p, S.z), pz = [...S.p, ...S.z], Kf = s => -pval(D, s) / pval(N, s), mx = Kf(B.s) > Kf(B.s + 0.01);
+      const lo = Math.max(...pz.filter(v => v < B.s)), hi = Math.min(...pz.filter(v => v > B.s)), seg = `${lo > -Infinity ? fm(lo) + ' < ' : ''}σ < ${fm(hi)}`;
+      const why = r => Math.abs(r[1]) > 1e-6 ? 'מרוכב, נפסל' : pz.some(v => Math.abs(v - r[0]) < 1e-4) ? `${S.p.some(v => Math.abs(v - r[0]) < 1e-4) ? 'קוטב' : 'אפס'} של החוג הפתוח, נפסל` : Kf(r[0]) < 0 ? `K = ${fm(Kf(r[0]))} שלילי: אין שם ענף, נפסל` : `K = ${fmt(Kf(r[0]))} ✓`;
+      const roots = polyRoots(num).filter(r => r[1] > -1e-6).sort((a, b) => b[0] - a[0]);
+      return { text: `${rlL(S.p, S.z)} במשוב שלילי (0 < K < ∞). מצאו את הנקודה בקטע ${seg} שבה הענפים עוזבים את הציר הממשי או נכנסים אליו, ואת ערך K בנקודה.`,
+        parts: [{ label: 'σ', ans: B.s, unit: '' }, { label: 'K', ans: B.K, unit: '' }],
+        sol: [`מבודדים את K מהמשוואה האופיינית${blk(`K = −D(s)/N(s) = −(${pstr(D)})${S.z.length ? ` / (${pstr(N)})` : ''}`)}`,
+          `גוזרים ומשווים לאפס. מספיק שהמונה של הנגזרת יתאפס${blk('D′(s)·N(s) − D(s)·N′(s) = 0', `${pstr(num)} = 0`)}`,
+          `בודקים כל פתרון: רק ממשי, לא קוטב או אפס, ו-K חיובי${blk(...roots.map(r => `s = ${Math.abs(r[1]) > 1e-6 ? `${fm(r[0])} ± j${fmt(r[1])}` : fm(near0(r[0]))} &nbsp;→&nbsp; ${why(r)}`))}`,
+          `בקטע ${seg}${blk(`σ = <b>${fm(B.s)}</b> &nbsp;·&nbsp; K = <b>${fmt(B.K)}</b>`)}`,
+          mx ? 'זו נקודת <b>פריצה</b>: לאורך הקטע K מגיע כאן למקסימום, והענפים עוזבים את הציר הממשי' : 'זו נקודת <b>חדירה</b>: לאורך הקטע K מגיע כאן למינימום, והענפים נכנסים לציר הממשי'].join('<br>') };
+    } },
+    rlStab: { group: 'stab', title: 'יציבות מתוך השרטוט: ארבעת התרחישים', gen(o = {}) {
+      const bank = [
+        ['כל ענפי ה-RL נמצאים משמאל לציר המדומה לכל K. מה נכון?', 'המערכת יציבה לכל K', ['המערכת יציבה רק עבור K קטן', 'המערכת לא יציבה לכל K', 'אי אפשר לדעת בלי Routh–Hurwitz'], 'תרחיש 1: אף קוטב של החוג הסגור לא מגיע לחצי המישור הימני.'],
+        ['אחד הענפים נמצא כולו מימין לציר המדומה, והשאר משמאל. מה נכון?', 'המערכת לא יציבה לכל K', ['המערכת יציבה לכל K', 'המערכת יציבה עבור K גדול מספיק', 'המערכת יציבה עבור K קטן מספיק'], 'תרחיש 2: מספיק ענף אחד שנשאר מימין כדי שלכל K יהיה קוטב לא יציב.'],
+        ['שני ענפים מתחילים מימין לציר המדומה וחוצים אותו שמאלה ב-K = K<sub>c</sub>. הענף השלישי תמיד משמאל. מתי המערכת יציבה?', 'עבור K > K<sub>c</sub>', ['עבור K < K<sub>c</sub>', 'לכל K', 'אף פעם'], 'לפני החיתוך (K < K<sub>c</sub>) שני קטבים מימין ⇒ לא יציב<br>אחרי החיתוך (K > K<sub>c</sub>) כל הקטבים משמאל ⇒ יציב<br>זה תרחיש 3, וזה המצב במועד א׳ קיץ תשפ"ה: יציב עבור K > 4.34'],
+        ['כל הענפים מתחילים משמאל לציר המדומה, ושניים מהם חוצים אותו ימינה ב-K = K<sub>c</sub>. מתי המערכת יציבה?', 'עבור K < K<sub>c</sub>', ['עבור K > K<sub>c</sub>', 'לכל K', 'אף פעם'], 'עד החיתוך כל הקטבים משמאל ⇒ יציב<br>מ-K<sub>c</sub> והלאה שני קטבים מימין ⇒ לא יציב<br>גם זה תרחיש 3, רק בכיוון ההפוך'],
+        ['ענף אחד נמצא תמיד מימין לציר המדומה, ושני ענפים אחרים חוצים את הציר ב-K = K<sub>c</sub>. מה נכון?', 'לא יציבה לכל K. ב-K<sub>c</sub> משתנה רק מספר הקטבים הלא יציבים', ['יציבה עבור K > K<sub>c</sub>', 'יציבה עבור K < K<sub>c</sub>', 'יציבה רק ב-K = K<sub>c</sub>'], 'תרחיש 4, שילוב של 2 ו-3: יש חיתוך, אבל בגלל הענף שנשאר מימין המערכת לא יציבה לכל K.'],
+        ['מה מתקיים בנקודת החיתוך של ענף עם הציר המדומה?', 's = ±jω<sub>c</sub> הוא שורש של K<sub>c</sub>·N(s) + D(s) = 0', ['s = ±jω<sub>c</sub> הוא קוטב של החוג הפתוח', 'K = 0', 'כל שורשי המשוואה האופיינית מדומים'], 'נקודת החיתוך היא הנקודה הקריטית: עבור K<sub>c</sub> יש לחוג הסגור זוג קטבים בדיוק על הציר המדומה.'],
+        ['אילו ערכים לא יכולים להיות K קריטי?', 'K = 0 ו-K → ∞', ['K שמאפס שורה בטבלת Routh', 'K שבו ענף נמצא על הציר המדומה', 'K חיובי כלשהו'], 'כך נקבע בשיעור: K = 0 ו-K = ∞ לא נחשבים ערכים קריטיים. אלה נקודות ההתחלה והסיום של הענפים.'],
+      ];
+      const [q, c, w, ex] = bank[o.i ?? Math.floor(Math.random() * bank.length)];
+      return { text: q, ...mcText(c, w), sol: ex };
+    } },
+    routh: { group: 'stab', title: 'Routh–Hurwitz: K קריטי ותדר החיתוך', gen(o = {}) {
+      const a = o.a ?? pick([1, 2, 3]), b = o.b ?? a + pick([1, 2, 3, 4]), s = a + b, pr = a * b, Kc = s * pr, wc = sq(pr);
+      return { text: `L(s) = K / [s(s + ${a})(s + ${b})] במשוב שלילי (0 < K < ∞). מצאו בעזרת Routh–Hurwitz את ה-K הקריטי ואת תדר החיתוך של ה-RL עם הציר המדומה.`,
+        parts: [{ label: 'K<sub>c</sub>', ans: Kc, unit: '' }, { label: 'ω<sub>c</sub>', ans: wc, unit: 'rad/s', units: U('rad/s', 'Hz') }],
+        sol: [`כותבים את המשוואה האופיינית K·N(s) + D(s) = 0${blk(`s(s + ${a})(s + ${b}) + K = 0`, `s³ + ${s}s² + ${pr}s + K = 0`)}`,
+          `טבלת Routh${blk(rhT([['s³', 1, pr], ['s²', s, 'K'], ['s¹', `B<sub>1</sub> = (${Kc} − K)/${s}`, 0], ['s⁰', 'K', '']]))}`,
+          `כל העמודה הראשונה צריכה להיות חיובית${blk(`K > 0 &nbsp;·&nbsp; ${Kc} − K > 0`, `0 < K < ${Kc}`)}`,
+          `ה-K הקריטי מאפס את שורת s¹${blk(`K<sub>c</sub> = <b>${Kc}</b>`)}`,
+          `בונים פולינום מהשורה שמעל, שורת s²${blk(`${s}s² + K<sub>c</sub> = 0`, `s² = −${Kc}/${s} = −${pr}`, `s = ±j√${pr}`)}`,
+          `תדר החיתוך עם הציר המדומה${blk(`ω<sub>c</sub> = √${pr} = <b>${fmt(wc)} rad/s</b>`)}`,
+          `כאן הענפים חוצים משמאל לימין, ולכן המערכת יציבה עבור K < ${Kc}`].join('<br>') };
+    } },
+    rlExam: { group: 'stab', title: 'שאלת מבחן מלאה: שרטוט RL ותחום יציבות', gen(o = {}) {
+      const z = o.z ?? pick([1, 2]), p = o.p ?? pick([1, 2, 3]);
+      const sas = 2 * (p + z), c = p * p - 4 * p * z - z * z, dsc = sq(c * c + 16 * z * p ** 3), Kc = (-c + dsc) / (4 * z), K2 = (-c - dsc) / (4 * z), wc = sq(p * p + 2 * z * Kc);
+      const b = 3 * z + p, sb = (-b - sq(b * b + 4 * p * z)) / 2, sb2 = (-b + sq(b * b + 4 * p * z)) / 2, Kb = -sb * (sb - p) ** 2 / (sb + z) ** 2, D2 = 2 * p, a1 = `${p * p} + ${2 * z}K`, a0 = `${z * z === 1 ? '' : z * z}K`;
+      return { text: `נתון P(s) = (s + ${z})<sup>2</sup> / [s(s² − ${2 * p}s + ${p * p})] בחוג סגור עם משוב שלילי והגבר 0 < K < ∞. שרטטו את ה-RL בצורה מלאה ומפורטת, וחשבו את נקודת היציאה של האסימפטוטות, את ה-K הקריטי ואת תדר החיתוך עם הציר המדומה.`,
+        parts: [{ label: 'σ<sub>as</sub>', ans: sas, unit: '' }, { label: 'K<sub>c</sub>', ans: Kc, unit: '' }, { label: 'ω<sub>c</sub>', ans: wc, unit: 'rad/s', units: U('rad/s', 'Hz') }],
+        sol: [`מפרקים את המכנה לגורמים${blk(`s² − ${D2}s + ${p * p} = (s − ${p})²`, `L(s) = K(s + ${z})² / [s(s − ${p})²]`)}`,
+          `<u>שלב 1</u>: כש-K = 0 מתחילים בקטבי החוג הפתוח${blk(`p = 0, ${p}, ${p} &nbsp;⇒&nbsp; n = 3`)}`,
+          `<u>שלב 2</u>: כש-K → ∞ מסיימים באפסים, והענף השלישי הולך לאינסוף${blk(`z = −${z}, −${z} &nbsp;⇒&nbsp; m = 2`)}`,
+          `<u>שלבים 3–4</u>: שלושה ענפים, סימטריים סביב הציר הממשי${blk('max(n, m) = 3')}`,
+          `<u>שלב 5</u>: אסימפטוטה אחת, והיא הציר הממשי שמאלה${blk('n − m = 1', `σ<sub>as</sub> = (Σp − Σz)/(n − m) = (${D2} − (−${2 * z}))/1 = <b>${sas}</b>`, 'θ = 180°')}`,
+          `<u>שלב 6</u>: על הציר הממשי סופרים קטבים ואפסים מימין לכל קטע. יש ענף רק כשהמספר אי-זוגי${blk(`<table class="t"><tr><th>σ < −${z}</th><th>−${z} < σ < 0</th><th>0 < σ < ${p}</th><th>σ > ${p}</th></tr><tr><td>5</td><td>3</td><td>2</td><td>0</td></tr><tr><td>יש ענף</td><td>יש ענף</td><td>אין</td><td>אין</td></tr></table>`)}כלומר יש ענף בכל החלק השלילי של הציר הממשי`,
+          `<u>שלב 7</u>: אין קטבים או אפסים מרוכבים. שני הענפים יוצאים מהקוטב הכפול ב-s = ${p} אנכית, בזוויות ±90°, כי על הציר שלידו אין ענף`,
+          `<u>שלב 8</u>: חיתוך עם הציר המדומה. כותבים את המשוואה האופיינית K·N(s) + D(s) = 0${blk(`K(s + ${z})² + s(s − ${p})² = 0`, `s³ + (K − ${D2})s² + (${a1})s + ${a0} = 0`)}`,
+          `טבלת Routh${blk(rhT([['s³', 1, a1], ['s²', `K − ${D2}`, a0], ['s¹', 'B<sub>1</sub>', 0], ['s⁰', a0, '']]) + `B<sub>1</sub> = [(K − ${D2})(${a1}) − ${a0}] / (K − ${D2})`)}`,
+          `כל העמודה הראשונה צריכה להיות חיובית${blk(`K − ${D2} > 0 &nbsp;·&nbsp; ${a0} > 0 &nbsp;·&nbsp; B<sub>1</sub> > 0`, `B<sub>1</sub> > 0 &nbsp;⇒&nbsp; ${2 * z}K² ${c < 0 ? '−' : '+'} ${Math.abs(c)}K − ${2 * p ** 3} > 0`)}`,
+          `שורשי המשוואה הריבועית הם K = ${fmt(Kc)} ו-K = ${fm(K2)}, והאי-שוויון מתקיים מחוץ להם. חותכים עם שאר התנאים ועם 0 < K < ∞, והמערכת יציבה עבור${blk(`K > <b>${fmt(Kc)}</b> = K<sub>c</sub>`)}`,
+          `תדר החיתוך: ב-K<sub>c</sub> שורת s¹ מתאפסת, ובונים פולינום מהשורה שמעל${blk(`(K<sub>c</sub> − ${D2})s² + ${a0}<sub>c</sub> = 0`, `s² = −${fmt(z * z * Kc, 4)}/${fmt(Kc - D2, 4)} = −${fmt(wc * wc, 4)}`, `s = ±j<b>${fmt(wc)}</b>`)}`,
+          `<u>שלב 9</u>: נקודת החדירה לציר הממשי, מהתנאי dK/ds = 0${blk(`K = −s(s − ${p})²/(s + ${z})²`, `(s + ${z})(s − ${p})(s² + ${b}s − ${p * z}) = 0`, `s = ${fm(sb)} &nbsp;,&nbsp; K = ${fmt(Kb)}`)}s = −${z} ו-s = ${p} הם האפס והקוטב עצמם, ו-s = ${fmt(sb2)} נמצא בקטע שבו אין ענף. נשארת נקודת חדירה אחת`,
+          `<u>התמונה</u>: שני ענפים יוצאים מ-s = ${p} אנכית, חוצים את הציר המדומה בגובה ω = ${fmt(wc)}, וחוזרים לציר הממשי ב-s = ${fm(sb)}. משם אחד הולך לאפס ב-s = −${z} והשני לאינסוף. הענף השלישי הולך מהראשית אל האפס ב-s = −${z}`].join('<br>') };
+    } },
+    rlExamB: { group: 'stab', title: 'שאלת מבחן, סעיף ב׳: משוב חיובי וקטבים מרוכבים', gen(o = {}) {
+      const c = o.c ?? pick([8, 13]), b = sq(c - 4), bj = `j${b}`, p = [0, [2, b]], z = [-1], deg = x => x * 180 / Math.PI;
+      const tz = deg(Math.atan2(b, 3)), t0 = deg(Math.atan2(b, 2)), dep = tz - t0 - 90, Kx = -4 * c / 5, wx = sq(c / 5), br = rlBreaks(p, z, true)[0], cr = polyRoots([2, -1, -8, c]).find(r => r[1] > 1e-6);
+      return { text: `נתון P(s) = (s + 1) / [s(s² − 4s + ${c})] בחוג סגור עם <b>משוב חיובי</b>, −∞ < K < 0. שרטטו את ה-RL בצורה מלאה ומפורטת, וחשבו את נקודת היציאה של האסימפטוטות, את זווית היציאה מהקוטב s = 2 + ${bj} ואת נקודת החדירה לציר הממשי.`,
+        parts: [{ label: 'σ<sub>as</sub>', ans: 2.5, unit: '' }, { label: 'θ<sub>dep</sub>', ans: dep, unit: '°', units: U('°', 'rad') }, { label: 'σ<sub>חדירה</sub>', ans: br.s, unit: '' }],
+        sol: [`מוצאים קטבים ואפסים. הגורם הריבועי לא מתפרק לגורמים ממשיים${blk(`s² − 4s + ${c} = 0 &nbsp;⇒&nbsp; s = 2 ± ${bj}`, `p = 0, 2 + ${bj}, 2 − ${bj} &nbsp;⇒&nbsp; n = 3`, 'z = −1 &nbsp;⇒&nbsp; m = 1')}`,
+          '<u>שלבים 1–4</u>: הענפים יוצאים משלושת הקטבים. ענף אחד מסתיים באפס, ושניים הולכים לאינסוף. שלושה ענפים, סימטריים סביב הציר הממשי',
+          `<u>שלב 5</u>: שתי אסימפטוטות. החלקים המדומים של הזוג מתבטלים בסכום${blk('n − m = 2', 'σ<sub>as</sub> = (0 + 2 + 2 − (−1))/2 = <b>2.5</b>', 'θ<sub>i</sub> = 2i·180°/(n − m) &nbsp;⇒&nbsp; 0° , 180°')}במשוב חיובי נוסחת הזוויות היא 2i ולא 2i + 1`,
+          `<u>שלב 6</u>: במשוב חיובי יש ענף כשמספר הקטבים והאפסים מימין <b>זוגי</b>. קטבים מרוכבים לא נספרים, כי הם באים בזוג${blk('<table class="t"><tr><th>σ < −1</th><th>−1 < σ < 0</th><th>σ > 0</th></tr><tr><td>2</td><td>1</td><td>0</td></tr><tr><td>יש ענף</td><td>אין</td><td>יש ענף</td></tr></table>')}`,
+          `<u>שלב 7</u>: זווית היציאה מהקוטב 2 + ${bj}. במשוב חיובי סכום הזוויות מהאפסים פחות סכום הזוויות מהקטבים הוא 0°${blk(`θ<sub>z1</sub> = arctan(${b}/3) = ${fmt(tz)}°`, `θ<sub>p1</sub> = arctan(${b}/2) = ${fmt(t0)}° &nbsp;·&nbsp; θ<sub>p2</sub> = 90°`, `θ<sub>dep</sub> = ${fmt(tz)}° − ${fmt(t0)}° − 90° = <b>${fm(dep)}°</b>`)}מהקוטב התחתון הזווית הפוכה בסימן, בגלל הסימטריה`,
+          `<u>שלב 8</u>: חיתוך עם הציר המדומה. המשוואה האופיינית${blk(`K(s + 1) + s(s² − 4s + ${c}) = 0`, `s³ − 4s² + (${c} + K)s + K = 0`)}`,
+          `טבלת Routh${blk(rhT([['s³', 1, `${c} + K`], ['s²', '−4', 'K'], ['s¹', 'B<sub>1</sub>', 0], ['s⁰', 'K', '']]) + `B<sub>1</sub> = [−4(${c} + K) − K]/(−4) = (${4 * c} + 5K)/4`)}`,
+          'בשורת s² האיבר הראשון הוא −4, שלילי לכל K. מול ה-1 שמעליו זה שינוי סימן, ולכן <b>המערכת לא יציבה לכל K</b> בתחום −∞ < K < 0',
+          `<i>השלמה:</i> כמה קטבים לא יציבים יש? סופרים שינויי סימן בעמודה הראשונה. B<sub>1</sub> מתאפס ב-K = ${fm(Kx)}${blk(`${fm(Kx)} < K < 0: &nbsp;1 , −4 , + , − &nbsp;⇒&nbsp; 3`, `K < ${fm(Kx)}: &nbsp;1 , −4 , − , − &nbsp;⇒&nbsp; 1`, `−4s² + K = 0 &nbsp;⇒&nbsp; s = ±j${fmt(wx)}`)}הזוג המרוכב חוצה את הציר המדומה שמאלה, אבל הענף שיוצא מהראשית נשאר מימין. זה תרחיש 4`,
+          `<u>שלב 9</u>: נקודת החדירה${blk('D′(s)·N(s) − D(s)·N′(s) = 0', `2s³ − s² − 8s + ${c} = 0`, `s = ${fm(br.s)} , K = ${fm(br.K)} &nbsp;·&nbsp; s = ${fmt(cr[0])} ± j${fmt(cr[1])}`)}רק ${fm(br.s)} ממשי ונמצא על ענף (σ < −1). שם הזוג נכנס לציר הממשי`,
+          `<u>התמונה</u>: הענף מהראשית הולך ימינה לאינסוף. הזוג יוצא מ-2 ± ${bj} למטה ושמאלה מהקוטב העליון, חוצה את הציר המדומה בגובה ω = ${fmt(wx)}, ונכנס לציר הממשי ב-s = ${fm(br.s)}. משם ענף אחד הולך לאפס ב-s = −1 והשני לאינסוף שמאלה`].join('<br>') };
+    } },
+  },
+  sheet: (m => `<h3>Root Locus</h3><p>${m('L(s) = K·N(s)/D(s)')} · ${m('T = L/(1 + L) = K·N/(K·N + D)')} · משוואה אופיינית: ${m('K·N(s) + D(s) = 0')}<br>${m('K = 0')}: קטבי החוג הפתוח · ${m('K → ∞')}: אפסי החוג הפתוח, ועוד ${m('n − m')} ענפים לאינסוף<br>מספר הענפים: ${m('max(n, m)')} · סימטריה סביב הציר הממשי<br>אסימפטוטות: ${m('n − m')} · ${m('σ<sub>as</sub> = (Σp − Σz)/(n − m)')} · ${m('θ<sub>i</sub> = (2i + 1)·180°/(n − m)')} · משוב חיובי: ${m('θ<sub>i</sub> = 2i·180°/(n − m)')}<br>ציר ממשי, ${m('K &gt; 0')}: ענף קיים כשמימין מספר אי-זוגי של קטבים ואפסים. ${m('K &lt; 0')}: זוגי</p>
+<h3>יציבות</h3><p>יציב רק כשכל קטבי החוג הסגור משמאל לציר ${m('jω')} · חיתוך: ${m('K<sub>c</sub>·N(jω<sub>c</sub>) + D(jω<sub>c</sub>) = 0')}<br>Routh לסדר 3: ${m('a<sub>3</sub>s³ + a<sub>2</sub>s² + a<sub>1</sub>s + a<sub>0</sub> = 0')}<br>העמודה הראשונה, כולה חיובית: ${m('a<sub>3</sub> , a<sub>2</sub> , B<sub>1</sub> = (a<sub>2</sub>a<sub>1</sub> − a<sub>3</sub>a<sub>0</sub>)/a<sub>2</sub> , a<sub>0</sub>')}<br>${m('K<sub>c</sub>')} מאפס שורה. פולינום מהשורה שמעל: ${m('a<sub>2</sub>s² + a<sub>0</sub> = 0 ⇒ s = ±jω<sub>c</sub>')}</p>
+<h3>זווית יציאה, פריצה וחדירה</h3><p>זווית יציאה מקוטב מרוכב: ${m('Σθ<sub>z</sub> − Σθ<sub>p</sub> = 180°')} במשוב שלילי, ${m('0°')} במשוב חיובי · קוטב כפול על הציר הממשי, בלי ענף לידו: יציאה ב-${m('±90°')}<br>שלב 9: ${m('dK/ds = 0 ⇔ D′N − DN′ = 0')} · פריצה: מקסימום של K, בין שני קטבים · חדירה: מינימום של K, בין שני אפסים</p>`)(s => `<bdi dir="ltr">${s}</bdi>`),
+};
+COURSES.control = control;
+
+STRATEGY.control = `<h3>מה יש כאן כרגע</h3>
+<p>הקורס באפליקציה בנוי בינתיים משיעור אחד, <b>Root Locus</b> (11.11), ומשני הסעיפים של שאלה 1 ממועד א׳ קיץ תשפ"ה שנפתרו בו. לפי השיעור, <b>המבחן ב-8.2.2027</b>. מבנה המבחן (מספר השאלות, המשקלים והזמן) עוד לא ידוע לאפליקציה, ולכן הטיימר של "מבחן מלא" מכוון ל-180 דקות כמו בשאר הקורסים.</p>
+<h3>מה נאמר בשיעור על המבחן</h3><ul><li>עבודות הבית ברמה גבוהה יותר מהמבחן, ומכינות אליו היטב.</li><li>לרשום את הדרך, לא רק את התוצאה הסופית.</li><li>מה ללמוד: Routh–Hurwitz ו-Root Locus.</li></ul>
+<h3>שאלת RL: תשעת השלבים לפי הסדר</h3>
+<ol><li>K = 0: נקודות ההתחלה הן קטבי החוג הפתוח.</li><li>K → ∞: נקודות הסיום הן האפסים, והשאר לאינסוף.</li><li>מספר הענפים: max(n, m).</li><li>סימטריה סביב הציר הממשי.</li><li>אסימפטוטות: מספר, σ<sub>as</sub>, זוויות.</li><li>ענפים על הציר הממשי: כלל הזוגיות.</li><li>זווית יציאה מקטבים מרוכבים. בדרך כלל לא מבקשים, אבל יש עבודות שדורשות.</li><li>חיתוך עם הציר המדומה: Routh–Hurwitz ⇒ K<sub>c</sub>, ω<sub>c</sub> ותחום היציבות.</li><li>נקודות פריצה וחדירה: dK/ds = 0, ומסננים לפי השרטוט.</li></ol>
+<h3>שיטת עבודה</h3><ul><li>לפרק את המכנה לגורמים לפני הכול: s² − 4s + 4 = (s − 2)². טעות סימן כאן משנה את כל הקטבים.</li><li>לרשום n, m ואת רשימת הקטבים והאפסים, כולל כפולים ומרוכבים.</li><li>לבדוק את סוג המשוב. במשוב חיובי (K < 0) שלושה כללים מתהפכים: הציר הממשי, זוויות האסימפטוטות וזווית היציאה.</li><li>לשרטט תוך כדי. כל שלב מוסיף שכבה לשרטוט.</li><li>ב-Routh: לכתוב את <b>כל</b> התנאים על K, לחתוך אותם, ורק אז לסנן לפי התחום הנתון.</li><li>לבדוק סימטריה בסוף. שרטוט לא סימטרי הוא שרטוט שגוי.</li></ul>`;
+
+// ---------- s-plane drawing on top of plot(). B = [x1, x2, y1, y2] ----------
+// axes through the origin; the right half-plane (unstable) is tinted
+function drawSPlane(P, B, shade = true) {
+  if (shade) P.rect(0, B[2], B[1], B[3] - B[2], 'fill bad');
+  P.el('line', { x1: P.X(B[0]), x2: P.X(B[1]), y1: P.Y(0), y2: P.Y(0), class: 'ax' }); P.el('line', { x1: P.X(0), x2: P.X(0), y1: P.Y(B[2]), y2: P.Y(B[3]), class: 'ax' });
+}
+// open-loop poles (×) and zeros (○) on the real axis; a double one gets a small tag
+function drawPZ(P, p, z) {
+  const re = a => a.filter(v => !Array.isArray(v)), cx = a => a.filter(Array.isArray).flatMap(([x, y]) => [[x, y], [x, -y]]);
+  const cnt = a => re(a).reduce((m, v) => m.set(v, (m.get(v) || 0) + 1), new Map());
+  const tag = (x, k) => { if (k > 1) P.el('text', { x: P.X(x), y: P.Y(0) - 9, class: 'tick', 'text-anchor': 'middle' }, k === 2 ? 'כפול' : '×' + k); };
+  const O = (x, y) => P.el('circle', { cx: P.X(x), cy: P.Y(y), r: 4.5, class: 'px zo' }), X = (x, y) => { const a = P.X(x), b = P.Y(y); P.el('path', { d: `M${a - 4} ${b - 4}l8 8M${a - 4} ${b + 4}l8 -8`, class: 'px' }); };
+  cnt(z).forEach((k, x) => { O(x, 0); tag(x, k); }); cx(z).forEach(([x, y]) => O(x, y));
+  cnt(p).forEach((k, x) => { X(x, 0); tag(x, k); }); cx(p).forEach(([x, y]) => X(x, y));
+}
+// a dashed ray from (x0, 0) at angle th°, clipped to the box
+function drawRay(P, x0, th, B, cls = 'c2') {
+  const c = Math.cos(th * Math.PI / 180), s = Math.sin(th * Math.PI / 180);
+  const t = Math.min(c > 1e-9 ? (B[1] - x0) / c : c < -1e-9 ? (B[0] - x0) / c : Infinity, s > 1e-9 ? B[3] / s : s < -1e-9 ? B[2] / s : Infinity);
+  P.el('line', { x1: P.X(x0), y1: P.Y(0), x2: P.X(x0 + t * c), y2: P.Y(t * s), class: 'dash ' + cls });
+}
+// RL data for 0 < K < Kmax inside the box: real-axis segments + the complex branch (upper half) as [re, im, K] points.
+// Sweeps K and bisects where the complex pair appears, disappears or leaves the box. Follows one complex pair, which covers order ≤ 3.
+function rlData(p, z, B, Kmax) {
+  const up = K => { const r = clPoles(p, z, K).find(q => q[1] > 1e-3); return r && r[0] >= B[0] && r[0] <= B[1] && r[1] <= B[3] ? [...r, K] : null; };
+  const segs = []; let cur = null, Kp = 0;
+  for (let i = 0; i <= 240; i++) {
+    const K = Kmax * (i / 240) ** 3, c = up(K);
+    if (i && !!c !== !!cur) {
+      let a = Kp, b = K; const edge = [];
+      for (let k = 0; k < 18; k++) { const m = (a + b) / 2, r = up(m); if (r) edge.push(r); !!r === !!cur ? a = m : b = m; }
+      if (cur) { segs.push([...cur, ...edge]); cur = null; } else cur = edge.reverse();
+    }
+    if (c) (cur ||= []).push(c);
+    Kp = K;
+  }
+  if (cur) segs.push(cur);
+  return { p, z, real: rlRealSegs(p, z, B[0], B[1], Kmax < 0), segs };
+}
+const drawReal = (P, d) => d.real.forEach(([a, b]) => P.path([[a, 0], [b, 0]], 'c1'));
+const drawBranch = (P, d, Kto = Infinity) => d.segs.forEach(s => { const q = s.filter(r => Math.abs(r[2]) <= Math.abs(Kto)); P.path(q, 'c1'); P.path(q.map(r => [r[0], -r[1]]), 'c1'); });
+// a static picture for the "idea" card: draw on a detached plot and keep its SVG
+const rlPic = (o, draw) => { const b = document.createElement('div'); draw(plot(b, o)); return b.innerHTML; };
+const near0 = x => Math.abs(x) < 5e-4 ? 0 : x;
+
+// ---- the exam system K(s + 1)²/[s(s − 2)²], drawn in layers that follow the solution steps ----
+const EXB = [-9, 7, -5, 5], EXK = (5 + sq(153)) / 4, EXW = sq(4 + 2 * EXK), EXS = (-5 - sq(33)) / 2;
+const exPlot = { x: [-9, 7], y: [-5, 5], xl: 'σ', yl: 'jω', xt: [[EXS, '−5.37'], [-1, '−1'], [0, '0'], [2, '2'], [6, '6']], yt: [[-EXW, '−3.56'], [0, '0'], [EXW, '3.56']] };
+let exD;
+const exData = () => exD ||= rlData([0, 2, 2], [-1, -1], EXB, 40);
+// layers: z zeros · as asymptote · real real-axis segments · cnt counts to the right · dep departure · cross branch up to Kc · full whole branch · fin arrows
+function exDraw(P, L = {}) {
+  const d = exData();
+  drawSPlane(P, EXB);
+  if (L.as) { drawRay(P, 6, 180, EXB); P.dot(6, 0, 'σ_as = 6', 'c2', -24, -9); }
+  if (L.real) drawReal(P, d);
+  if (L.cnt) [[-5, 5], [-0.5, 3], [1, 2], [4.5, 0]].forEach(([x, k]) => P.el('text', { x: P.X(x), y: P.Y(0) + 15, class: 'lbl ' + (k % 2 ? 'c1' : 'c3'), 'text-anchor': 'middle' }, k));
+  if (L.dep) { P.arrow(2, 0.3, 2, 1.7, 'c1', '+90°', 5, 4); P.arrow(2, -0.3, 2, -1.7, 'c1', '−90°', 5, 4); }
+  if (L.cross || L.full) drawBranch(P, d, L.full ? Infinity : EXK);
+  if (L.fin) {
+    const s = d.segs[0];
+    [2, 9].forEach(K => { const i = s.findIndex(r => r[2] > K), a = s[i - 2], b = s[i + 2]; P.arrow(a[0], a[1], b[0], b[1], 'c1'); P.arrow(a[0], -a[1], b[0], -b[1], 'c1'); });
+    P.arrow(-0.25, 0, -0.75, 0, 'c1'); P.arrow(-3.6, 0, -2.9, 0, 'c1'); P.arrow(-7, 0, -7.8, 0, 'c1');
+  }
+  drawPZ(P, d.p, L.z ? d.z : []);
+  if (L.cross || L.full) { P.dot(0, EXW, 'K = 4.34', 'c2', 7, -5); P.dot(0, -EXW, '', 'c2'); }
+  if (L.full) P.dot(EXS, 0, 'K = 15.3', 'c2', -22, 17);
+}
+
+// ---- part B: K(s + 1)/[s(s² − 4s + 8)], positive feedback (K < 0) ----
+const EBB = [-6, 7, -3.6, 3.6], EBW = sq(1.6), EBS = rlBreaks([0, [2, 2]], [-1], true)[0].s, EBD = Math.atan2(2, 3) - Math.atan2(2, 2) - Math.PI / 2;
+const ebPlot = { x: [-6, 7], y: [-3.6, 3.6], xl: 'σ', yl: 'jω', xt: [[EBS, '−2.18'], [-1, '−1'], [0, '0'], [2, '2'], [5, '5']], yt: [[-2, '−2'], [-EBW, '−1.26'], [0, '0'], [EBW, '1.26'], [2, '2']] };
+let ebD;
+const ebData = () => ebD ||= rlData([0, [2, 2]], [-1], EBB, -120);
+// layers as in exDraw: z · as · real · cnt · dep · cross (branch down to K = −6.4) · full · fin
+function exBDraw(P, L = {}) {
+  const d = ebData();
+  drawSPlane(P, EBB);
+  if (L.as) { drawRay(P, 2.5, 0, EBB); drawRay(P, 2.5, 180, EBB); P.dot(2.5, 0, 'σ_as = 2.5', 'c2', -4, 18); }
+  if (L.real) drawReal(P, d);
+  if (L.cnt) [[-3.5, 2], [-0.5, 1], [4, 0]].forEach(([x, k]) => P.el('text', { x: P.X(x), y: P.Y(0) + 15, class: 'lbl ' + (k % 2 ? 'c3' : 'c1'), 'text-anchor': 'middle' }, k));
+  if (L.dep) [1, -1].forEach(g => P.arrow(2 + 0.25 * Math.cos(EBD), g * (2 + 0.25 * Math.sin(EBD)), 2 + 1.4 * Math.cos(EBD), g * (2 + 1.4 * Math.sin(EBD)), 'c1', g > 0 ? '−101.3°' : '+101.3°', 6, g * 2));
+  if (L.cross || L.full) drawBranch(P, d, L.full ? -Infinity : -6.4);
+  if (L.fin) {
+    const s = d.segs[0];
+    [-2, -20].forEach(K => { const i = s.findIndex(r => r[2] < K), a = s[i - 2], b = s[i + 2]; P.arrow(a[0], a[1], b[0], b[1], 'c1'); P.arrow(a[0], -a[1], b[0], -b[1], 'c1'); });
+    P.arrow(3.4, 0, 4.4, 0, 'c1'); P.arrow(-1.75, 0, -1.3, 0, 'c1'); P.arrow(-3.8, 0, -4.8, 0, 'c1');
+  }
+  drawPZ(P, d.p, L.z ? d.z : []);
+  if (L.cross || L.full) { P.dot(0, EBW, 'K = −6.4', 'c2', 7, -5); P.dot(0, -EBW, '', 'c2'); }
+  if (L.full) P.dot(EBS, 0, 'K = −39.7', 'c2', -24, -9);
+}
+// ---- step 9 example from the lecture notes: K(s + 5)/[(s + 1)(s + 3)] ----
+const BKB = [-11, 1.5, -4, 4], bkPlot = { x: [-11, 1.5], y: [-4, 4], xl: 'σ', yl: 'jω', xt: [[-5 - sq(8), '−7.83'], [-5, '−5'], [-5 + sq(8), '−2.17'], [0, '0']], yt: [[-2.83, '−2.83'], [0, '0'], [2.83, '2.83']] };
+let bkD;
+const bkData = () => bkD ||= rlData([-1, -3], [-5], BKB, 300);
+function bkDraw(P, sx) {
+  const d = bkData(); drawSPlane(P, BKB, false); drawReal(P, d); drawBranch(P, d); drawPZ(P, d.p, d.z);
+  P.dot(-5 + sq(8), 0, 'פריצה', 'c2', -14, -10); P.dot(-5 - sq(8), 0, 'חדירה', 'c2', -14, -10);
+  if (sx !== undefined) P.dot(sx, 0, '', 'c3');
+}
+
+const picLoop = sv(340, 118, T(12, 34, 'R(s)', '', 'start') + Arr(12, 44, 47, 44, '', 'h2') + `<circle cx="60" cy="44" r="12" class="src"/>` + T(60, 48, 'Σ', 'm') + T(44, 36, '+', 'm') + T(48, 68, '−', 'a') +
+  W([72, 44], [100, 44]) + `<rect x="100" y="29" width="42" height="30" rx="4" class="src"/>` + T(121, 49, 'K', 'a') + W([142, 44], [168, 44]) + `<rect x="168" y="29" width="84" height="30" rx="4" class="src"/>` + T(210, 49, 'N(s)/D(s)') +
+  Arr(252, 44, 326, 44, '', 'h2') + T(328, 34, 'Y(s)', '', 'end') + Dot(290, 44) + W([290, 44], [290, 96], [60, 96], [60, 78]) + Arr(60, 78, 60, 57, '', 'h2') + T(170, 113, 'L(s) = K·N(s)/D(s)', 'a'));
+// the four stability scenarios from the lecture
+const picStab = (() => {
+  const X = (x, y) => `<path class="h" d="M${x - 4} ${y - 4}l8 8M${x - 4} ${y + 4}l8 -8"/>`, cr = (x, y) => `<circle cx="${x}" cy="${y}" r="3.5" fill="var(--bad)"/>`;
+  const left = (x, y) => X(x - 30, y - 24) + Arr(x - 37, y - 26, x - 64, y - 34) + X(x - 30, y + 24) + Arr(x - 37, y + 26, x - 64, y + 34);
+  const cross = (x, y) => X(x - 42, y - 22) + Arr(x - 35, y - 23, x + 42, y - 31) + X(x - 42, y + 22) + Arr(x - 35, y + 23, x + 42, y + 31) + cr(x, y - 26.6) + cr(x, y + 26.6);
+  const right = (x, y) => X(x + 16, y) + Arr(x + 23, y, x + 64, y);
+  const cell = (x, y, n, cap, s) => `<line class="dsh" x1="${x - 74}" y1="${y}" x2="${x + 74}" y2="${y}"/><line class="w" x1="${x}" y1="${y - 44}" x2="${x}" y2="${y + 44}"/>` + T(x + 5, y - 36, 'jω', 'm', 'start') + T(x - 74, y - 34, n, 'a', 'start') + s + T(x, y + 60, cap, 'm');
+  return sv(340, 250, cell(85, 52, '1', 'יציב תמיד', left(85, 52)) + cell(255, 52, '2', 'לא יציב תמיד', left(255, 52) + right(255, 52)) +
+    cell(85, 177, '3', 'יציב רק בתחום מסוים', cross(85, 177)) + cell(255, 177, '4', 'לא יציב תמיד, למרות החיתוך', cross(255, 177) + right(255, 177)));
+})();
+
+// ---------- lessons ----------
+const Lc = LESSONS.control = {};
+
+Lc.rlIdea = {
+  simple: `<p>בחוג סגור יש הגבר <b>K</b> שאפשר לכוון. כל שינוי ב-K מזיז את <b>קטבי החוג הסגור</b>, והם אלה שקובעים אם המערכת יציבה ואיך היא מגיבה.</p>
+<p><b>Root Locus (RL)</b> הוא המסלול שהקטבים האלה עוברים במישור s כש-K גדל מ-0 עד ∞. במקום לפתור את המשוואה מחדש לכל K, משרטטים פעם אחת את כל המסלולים.</p>
+<p class="ana">🚗 אנלוגיה: K הוא דוושת הגז והקטבים הם מכוניות. ה-RL הוא מפת הכבישים: רואים מראש לאן כל מכונית תגיע בכל לחיצה על הדוושה.</p>
+<p>כל ענף <b>יוצא מקוטב</b> של החוג הפתוח (K = 0) ו<b>מסתיים באפס</b> של החוג הפתוח (K → ∞). ענף שלא נשאר לו אפס הולך לאינסוף.</p>`,
+  pic: picLoop,
+  sym: [['L(s)', 'החוג הפתוח = K·N(s)/D(s)', '—'], ['K', 'ההגבר שמשנים. 0 < K < ∞ משוב שלילי, −∞ < K < 0 משוב חיובי', '—'], ['N(s)', 'המונה. שורשיו הם m האפסים של החוג הפתוח', '—'], ['D(s)', 'המכנה. שורשיו הם n הקטבים של החוג הפתוח', '—'],
+    ['T(s)', 'החוג הסגור = L/(1 + L) = K·N/(K·N + D)', '—'], ['σ, jω', 'הציר הממשי והציר המדומה של מישור s', 'rad/s'], ['× , ○', 'בשרטוט: × הוא קוטב של החוג הפתוח, ○ הוא אפס', '—']],
+  intro: 'קטבי החוג הסגור הם שורשי המשוואה K·N(s) + D(s) = 0. ארבעת השלבים הראשונים קובעים את השלד של השרטוט.',
+  body: `<p class="f">L(s) = K·N(s)/D(s) &nbsp;·&nbsp; T(s) = L/(1 + L) = K·N(s) / [K·N(s) + D(s)]</p>
+<p>קטבי החוג הסגור הם שורשי <b>המשוואה האופיינית</b>:</p>
+<p class="f">K·N(s) + D(s) = 0</p>
+<ol><li><b>K = 0</b> ⇒ D(s) = 0: מתחילים ב<b>קטבי</b> החוג הפתוח.</li><li><b>K → ∞</b> ⇒ N(s) = 0: מסיימים ב<b>אפסי</b> החוג הפתוח. כשיש יותר קטבים מאפסים, n − m ענפים הולכים לאינסוף.</li><li><b>מספר הענפים</b> הוא max(n, m).</li><li><b>סימטריה</b> סביב הציר הממשי. היא עוזרת לבדוק שהשרטוט נכון.</li></ol>
+<p>כל K נותן n שורשים, וכל נקודה על ה-RL היא שורש עבור K מסוים.</p>
+<p><b>סימן K.</b> משוב שלילי: 0 < K < ∞. משוב חיובי: −∞ < K < 0.</p>`,
+  graph(box) {
+    const B = [-3.5, 1.5, -2.6, 2.6], P = plot(box, { x: [B[0], B[1]], y: [B[2], B[3]], xl: 'σ', yl: 'jω', xt: [[-2, '−2'], [-1, '−1'], [0, '0']], yt: [[-2, '−2'], [0, '0'], [2, '2']] });
+    sliders(box, [{ k: 'K', label: 'K', min: 0, max: 6, step: 0.05, v: 0.5 }], v => {
+      P.clear(); drawSPlane(P, B); P.path([[-2, 0], [0, 0]], 'c1'); P.path([[-1, B[2]], [-1, B[3]]], 'c1'); drawPZ(P, [0, -2], []);
+      const d = 1 - v.K, r = sq(Math.abs(d));
+      if (d >= 0) { P.dot(-1 + r, 0, ''); P.dot(-1 - r, 0, ''); } else { P.dot(-1, r, ''); P.dot(-1, -r, ''); }
+      return `L(s) = K/[s(s + 2)] ⇒ s² + 2s + K = 0<br>K = ${v.K}: s = ${d > 0 ? `${fm(near0(-1 + r))} , ${fm(-1 - r)}` : d === 0 ? '−1 , −1' : `−1 ± j${fmt(r)}`}<br>${v.K === 0 ? 'K = 0: הקטבים יושבים בדיוק על קטבי החוג הפתוח (×)' : d > 0 ? 'שני קטבים ממשיים שמתקרבים זה לזה' : d === 0 ? 'הקטבים נפגשים ב-s = −1' : 'זוג מרוכב צמוד שמתרחק מהציר הממשי. אין אפסים, ולכן שני הענפים הולכים לאינסוף'}`;
+    });
+  },
+  ex: { src: 'המערכת של שאלת המבחן', inputs: { kind: 'ends', p: [0, 2, 2], z: [-1, -1] } },
+  quiz: [{ q: 'ב-K = 0, מאיפה ענפי ה-RL יוצאים?', o: ['מקטבי החוג הפתוח', 'מאפסי החוג הפתוח', 'מהראשית', 'מהאינסוף'], a: 0, why: 'ב-K = 0 המשוואה K·N + D = 0 הופכת ל-D(s) = 0, ואלה הקטבים.' },
+    { q: 'לחוג הפתוח 4 קטבים ואפס אחד. כמה ענפים הולכים לאינסוף?', o: ['3', '4', '1', '5'], a: 0, why: 'n − m = 4 − 1 = 3. ענף אחד מסתיים באפס.' },
+    { q: 'שרטטת RL והוא לא סימטרי סביב הציר הממשי. מה זה אומר?', o: ['יש טעות בשרטוט', 'המערכת לא יציבה', 'זה משוב חיובי', 'יש קטבים מרוכבים'], a: 0, why: 'שורשים מרוכבים של פולינום ממשי באים בזוגות צמודים, ולכן ה-RL תמיד סימטרי.' }],
+  traps: ['לבלבל בין הקצוות: ב-K → ∞ מגיעים ל<b>אפסים</b> של החוג הפתוח, לא לקטבים.', 'לכתוב T = L/(1 − L). במשוב שלילי המכנה הוא 1 + L, ולכן המשוואה האופיינית היא K·N + D = 0.', 'לספור קוטב או אפס כפול פעם אחת. קוטב כפול הוא שני קטבים.'],
+  exam: 'שלבים 1–4 בכל שרטוט RL. כך התחיל גם הפתרון של מועד א׳ קיץ תשפ"ה בשיעור.',
+};
+
+Lc.rlAsym = {
+  simple: `<p>כשיש יותר קטבים מאפסים, לחלק מהענפים אין אפס להגיע אליו. הענפים האלה הולכים לאינסוף, אבל לא סתם: רחוק מהראשית הם נצמדים לקווים ישרים, <b>אסימפטוטות</b>.</p>
+<p>כל האסימפטוטות יוצאות מאותה נקודה על הציר הממשי, <b>σ<sub>as</sub></b>, ומתפזרות בזוויות שוות.</p>
+<p class="ana">🎆 אנלוגיה: כמו זיקוק. מרחוק נראה שכל הקרניים יוצאות מנקודה אחת ומתפזרות באופן סימטרי.</p>
+<p>σ<sub>as</sub> היא מעין ממוצע של הקטבים והאפסים: סכום הקטבים פחות סכום האפסים, חלקי מספר האסימפטוטות.</p>`,
+  get pic() { const B = [-8, 4, -5, 5]; return rlPic({ x: [B[0], B[1]], y: [B[2], B[3]], xl: 'σ', yl: 'jω', xt: [[-5, '−5'], [-2, '−2'], [0, '0']] }, P => {
+    drawSPlane(P, B, false); [60, 180, 300].forEach(t => drawRay(P, -2, t, B)); drawPZ(P, [0, -1, -5], []); P.dot(-2, 0, 'σ_as = −2', 'c2', -30, 18);
+    [[-0.4, 2.2, '60°'], [-7.6, 0.5, '180°'], [-0.4, -2.6, '300°']].forEach(([x, y, t]) => P.el('text', { x: P.X(x), y: P.Y(y), class: 'lbl c2' }, t));
+  }); },
+  sym: [['n', 'מספר הקטבים של החוג הפתוח', '—'], ['m', 'מספר האפסים של החוג הפתוח', '—'], ['n − m', 'מספר האסימפטוטות = מספר הענפים שהולכים לאינסוף', '—'], ['σ<sub>as</sub>', 'נקודת היציאה של האסימפטוטות, על הציר הממשי', '—'],
+    ['θ<sub>i</sub>', 'הזווית של האסימפטוטה ה-i, מהכיוון החיובי של הציר הממשי', '°'], ['Σp , Σz', 'סכום הקטבים וסכום האפסים. קוטב כפול נכנס לסכום פעמיים', '—']],
+  intro: 'שלב 5: n − m ענפים הולכים לאינסוף. האסימפטוטות אומרות מאיפה הם יוצאים ובאיזו זווית.',
+  body: `<p class="f">n − m = מספר האסימפטוטות</p>
+<p class="f">σ<sub>as</sub> = (Σp − Σz) / (n − m)</p>
+<p class="f">θ<sub>i</sub> = (2i + 1)·180° / (n − m) , &nbsp; i = 0, 1, … , n − m − 1</p>
+<p>זו הנוסחה למשוב שלילי, 0 < K < ∞. במשוב חיובי (−∞ < K < 0) הזוויות זזות בחצי צעד:</p>
+<p class="f">θ<sub>i</sub> = 2i·180° / (n − m)</p>
+<p>למשל, n − m = 2 במשוב חיובי נותן 0° ו-180°. זה מה שיצא בסעיף ב׳ של שאלת המבחן.</p>
+<table class="t"><tr><th>n − m</th><th>הזוויות</th></tr><tr><td>1</td><td>180°</td></tr><tr><td>2</td><td>90°, 270°</td></tr><tr><td>3</td><td>60°, 180°, 300°</td></tr><tr><td>4</td><td>45°, 135°, 225°, 315°</td></tr></table>
+<p><b>כש-n − m = 1</b> יש אסימפטוטה אחת בזווית 180°, והיא הציר הממשי השלילי עצמו. בפתרון בשיעור חישבו את σ<sub>as</sub> גם במקרה הזה, ויצא 6.</p>`,
+  graph(box) {
+    const B = [-8, 8, -5, 5], P = plot(box, { x: [B[0], B[1]], y: [B[2], B[3]], xl: 'σ', yl: 'jω', xt: [[-4, '−4'], [0, '0'], [4, '4']] });
+    sliders(box, [{ k: 'q', label: 'n − m', min: 1, max: 4, step: 1, v: 3 }, { k: 's', label: 'σ<sub>as</sub>', min: -5, max: 5, step: 0.5, v: -2, f: fm }], v => {
+      P.clear(); drawSPlane(P, B, false);
+      const th = Array.from({ length: v.q }, (_, i) => (2 * i + 1) * 180 / v.q);
+      th.forEach(t => drawRay(P, v.s, t, B)); P.dot(v.s, 0, '');
+      return `${v.q === 1 ? 'אסימפטוטה אחת יוצאת' : `${v.q} אסימפטוטות יוצאות`} מהנקודה σ<sub>as</sub> = ${fm(v.s)}<br>הזוויות: ${th.map(t => t + '°').join(' , ')}<br>${v.q === 1 ? 'זה הציר הממשי, משמאל לנקודה σ<sub>as</sub>' : 'הזווית בין שתי שכנות: ' + 360 / v.q + '°. תמיד סימטרי סביב הציר הממשי'}`;
+    });
+  },
+  ex: { src: 'מועד א׳ קיץ תשפ"ה, שלב 5', inputs: { p: [0, 2, 2], z: [-1, -1] } },
+  quiz: [{ q: 'הקטבים הם 0, −2, −4 ואין אפסים. מהי נקודת היציאה של האסימפטוטות?', o: ['−2', '−6', '2', '0'], a: 0, why: '(0 − 2 − 4 − 0)/(3 − 0) = −2.' },
+    { q: 'n − m = 2. מה זוויות האסימפטוטות?', o: ['90° ו-270°', '0° ו-180°', '45° ו-135°', '60° ו-300°'], a: 0, why: '(2i + 1)·180°/2 נותן 90° ו-270°: שתי אסימפטוטות אנכיות.' },
+    { q: 'L(s) = K(s + 1)²/[s(s − 2)²]. כמה אסימפטוטות יש?', o: ['1', '2', '3', '5'], a: 0, why: 'n − m = 3 − 2 = 1. שני ענפים מסתיימים באפס הכפול, ורק אחד הולך לאינסוף.' }],
+  traps: ['לשכוח את המינוס לפני Σz: אפס ב-s = −1 <b>מוסיף</b> 1 למונה.', 'לחלק ב-n במקום ב-n − m.', 'לספור קוטב כפול פעם אחת בסכום. קוטב כפול ב-s = 2 תורם 2 + 2.', 'לשכוח קטבים מרוכבים בסכום. הזוג 2 ± j2 תורם 4, כי החלקים המדומים מתבטלים.', 'להשתמש בנוסחת המשוב השלילי כשהמשוב חיובי.'],
+  exam: 'שלב 5 בשרטוט. במועד א׳ קיץ תשפ"ה: n − m = 1, σ<sub>as</sub> = 6, θ = 180°.',
+};
+
+Lc.rlReal = {
+  simple: `<p>איפה על הציר הממשי יש ל-RL ענפים? לא צריך לחשב כלום, רק <b>לספור</b>.</p>
+<p>עומדים על נקודה בציר הממשי, מסתכלים <b>ימינה</b>, וסופרים כמה קטבים ואפסים רואים. יצא מספר <b>אי-זוגי</b>? הנקודה על ה-RL (במשוב שלילי). יצא זוגי? היא לא.</p>
+<p class="ana">💡 אנלוגיה: כל קוטב או אפס הוא מתג אור. הולכים על הציר מימין לשמאל, וכל מתג שעוברים הופך את המצב: דולק, כבוי, דולק.</p>
+<p>קוטב או אפס <b>כפול</b> נספר פעמיים, ולכן הוא לא הופך את המצב. במשוב חיובי הכלל מתהפך: זוגי קיים, ואי-זוגי לא.</p>`,
+  get pic() { return rlPic(exPlot, P => exDraw(P, { z: 1, real: 1, cnt: 1 })); },
+  sym: [['σ', 'המיקום על הציר הממשי', '—'], ['×', 'קוטב של החוג הפתוח', '—'], ['○', 'אפס של החוג הפתוח', '—']],
+  intro: 'שלב 6: קובעים איפה על הציר הממשי יש ענפים ואיפה אין, בלי שום חישוב.',
+  body: `<p><b>השיטה במשוב שלילי (0 < K < ∞):</b></p>
+<ol><li>מסמנים על הציר את כל הקטבים והאפסים הממשיים. הם מחלקים אותו לקטעים.</li><li>לכל קטע סופרים כמה קטבים ואפסים נמצאים <b>מימינו</b>.</li><li>מספר אי-זוגי: הקטע שייך ל-RL. מספר זוגי, כולל 0: לא שייך.</li></ol>
+<p><b>במשוב חיובי (−∞ < K < 0)</b> הפוך: זוגי קיים, ואי-זוגי לא קיים.</p>
+<p>הדוגמה מהשיעור. הקטבים: 0, 2, 2. האפסים: −1, −1.</p>
+<table class="t"><tr><th>הקטע</th><th>מימינו</th><th>ענף?</th></tr><tr><td>σ > 2</td><td>0</td><td>✗</td></tr><tr><td>0 < σ < 2</td><td>2</td><td>✗</td></tr><tr><td>−1 < σ < 0</td><td>3</td><td>✓</td></tr><tr><td>σ < −1</td><td>5</td><td>✓</td></tr></table>
+<p>קטבים ואפסים מרוכבים לא משנים את הספירה, כי הם באים בזוגות.</p>`,
+  graph(box) {
+    const p = [0, 2, 2], z = [-1, -1], all = [...p, ...z], B = [-8, 5, -1, 1], P = plot(box, { x: [B[0], B[1]], y: [B[2], B[3]], xl: 'σ', yl: '', xt: [[-1, '−1'], [0, '0'], [2, '2']] });
+    sliders(box, [{ k: 'x', label: 'נקודת הבדיקה', min: -7.5, max: 4.5, step: 0.25, v: -0.5, f: fm }, { k: 'pos', label: 'סוג המשוב', min: 0, max: 1, step: 1, v: 0, f: v => v ? 'חיובי' : 'שלילי' }], v => {
+      P.clear(); drawSPlane(P, B, false);
+      rlRealSegs(p, z, B[0], B[1], !!v.pos).forEach(([a, b]) => P.path([[a, 0], [b, 0]], 'c1'));
+      drawPZ(P, p, z);
+      const c = all.filter(t => t > v.x).length, on = (c % 2 === 1) !== !!v.pos;
+      P.arrow(v.x, 0.4, B[1] - 0.3, 0.4, 'c3'); P.dot(v.x, 0, String(c), 'c2', -3, 24);
+      if (all.includes(v.x)) return `σ = ${fm(v.x)} היא בדיוק ${p.includes(v.x) ? 'קוטב' : 'אפס'}, קצה של קטע. הזז מעט ימינה או שמאלה.`;
+      return `מימין לנקודה σ = ${fm(v.x)} יש <b>${c}</b> קטבים ואפסים, מספר ${c % 2 ? 'אי-זוגי' : 'זוגי'}<br>${v.pos ? 'משוב חיובי (K < 0): ענף קיים כשהמספר זוגי' : 'משוב שלילי (K > 0): ענף קיים כשהמספר אי-זוגי'}<br><b>${on ? '✓ הנקודה על ה-RL' : '✗ הנקודה לא על ה-RL'}</b>`;
+    });
+  },
+  ex: { src: 'מועד א׳ קיץ תשפ"ה, שלב 6', inputs: { p: [0, 2, 2], z: [-1, -1], x: -0.5, fb: 'neg' } },
+  quiz: [{ q: 'יש קוטב ב-s = 0 וקוטב ב-s = −2, אין אפסים, והמשוב שלילי. באיזה קטע של הציר הממשי יש ענף?', o: ['−2 < σ < 0', 'σ < −2', 'σ > 0', 'בכל הציר הממשי'], a: 0, why: 'בקטע −2 < σ < 0 יש מימין קוטב אחד, מספר אי-זוגי. בקטע σ < −2 יש מימין שני קטבים, מספר זוגי.' },
+    { q: 'מה קורה לספירה כשעוברים על פני אפס כפול?', o: ['הזוגיות לא משתנה', 'הזוגיות מתהפכת', 'הענף נגמר שם', 'מתחילה אסימפטוטה'], a: 0, why: 'אפס כפול מוסיף 2 לספירה. בדוגמה מהשיעור יש ענף גם מימין וגם משמאל ל-s = −1: קודם 3 ואז 5.' },
+    { q: 'במשוב חיובי, מימין לנקודה יש 2 קטבים. האם עובר בה ענף?', o: ['כן', 'לא', 'רק אם יש גם אפס', 'אי אפשר לדעת'], a: 0, why: 'במשוב חיובי הכלל מתהפך: מספר זוגי אומר שיש ענף.' }],
+  traps: ['לספור את הקטבים והאפסים שמ<b>שמאל</b> לנקודה. סופרים רק את אלה שמימין.', 'לספור קוטב כפול פעם אחת.', 'לשכוח שהכלל מתהפך במשוב חיובי.'],
+  exam: 'שלב 6 בשרטוט. הוא קובע את רוב השלד של ה-RL, ולכן טעות כאן מקלקלת את כל השרטוט.',
+};
+
+Lc.rlStab = {
+  simple: `<p>מערכת יציבה רק אם <b>כל</b> קטבי החוג הסגור נמצאים משמאל לציר המדומה jω. מספיק קוטב אחד מימין, והמערכת לא יציבה.</p>
+<p>ה-RL מראה איפה הקטבים נמצאים לכל K, ולכן אפשר לקרוא ממנו את היציבות ישירות: בודקים אילו ענפים נמצאים משמאל לציר המדומה, אילו מימין, ואילו <b>חוצים</b> אותו.</p>
+<p class="ana">🚧 אנלוגיה: הציר המדומה הוא גבול. צד שמאל הוא השטח הבטוח. ברגע שענף חוצה את הגבול ימינה, המערכת יוצאת משליטה.</p>
+<p>ה-K שבו ענף נמצא בדיוק על הגבול נקרא <b>K קריטי</b>, K<sub>c</sub>. נקודת החיתוך היא s = ±jω<sub>c</sub>.</p>`,
+  pic: picStab,
+  sym: [['jω', 'הציר המדומה: הגבול בין הצד היציב (שמאל) לצד הלא יציב (ימין)', '—'], ['K<sub>c</sub>', 'K קריטי: ה-K שבו ענף נמצא בדיוק על הציר המדומה', '—'], ['ω<sub>c</sub>', 'התדר בנקודת החיתוך, s = ±jω<sub>c</sub>', 'rad/s']],
+  intro: 'שלב 8: מחברים את השרטוט ליציבות דרך נקודות החיתוך של הענפים עם הציר המדומה.',
+  body: `<table class="t"><tr><th>תרחיש</th><th>מה רואים בשרטוט</th><th>המסקנה</th></tr>
+<tr><td>1</td><td>כל הענפים משמאל לציר המדומה</td><td>יציב לכל K</td></tr>
+<tr><td>2</td><td>לפחות ענף אחד נמצא מימין</td><td>לא יציב לכל K</td></tr>
+<tr><td>3</td><td>ענפים חוצים את הציר המדומה</td><td>יציב בתחום K מסוים, ולא יציב בתחום המשלים</td></tr>
+<tr><td>4</td><td>שילוב של 2 ו-3: יש חיתוך, אבל ענף אחר נשאר מימין</td><td>לא יציב לכל K</td></tr></table>
+<p>נקודת החיתוך היא הנקודה הקריטית, ומתקיים בה:</p>
+<p class="f">K<sub>c</sub>·N(jω<sub>c</sub>) + D(jω<sub>c</sub>) = 0</p>
+<ul><li>K = 0 ו-K = ∞ לא יכולים להיות ערכים קריטיים.</li><li>אם אחרי Routh–Hurwitz לא מתקבל תחום שבו המערכת יציבה ותחום שבו היא לא, אין K קריטי שמפריד ביניהם. דוגמה לתרחיש 4: סעיף ב׳ של שאלת המבחן.</li><li>בתרחיש 4, K<sub>c</sub> לא מפריד בין יציב ללא יציב. הוא רק משנה את <b>מספר</b> הקטבים הלא יציבים.</li><li>כשמציבים K<sub>c</sub> במשוואה האופיינית, לא כל הפתרונות הם נקודות חיתוך. רק ±jω<sub>c</sub> חותכים את הגבול.</li></ul>
+<p>את K<sub>c</sub> ואת ω<sub>c</sub> מוצאים עם Routh–Hurwitz, בנושא הבא.</p>`,
+  ex: { src: 'תרחיש 3, כמו בשאלת המבחן', inputs: { i: 2 } },
+  quiz: [{ q: 'כל הענפים נמצאים משמאל לציר המדומה. מה נכון?', o: ['יציב לכל K', 'יציב רק עבור K קטן', 'לא יציב לכל K', 'צריך Routh–Hurwitz כדי לדעת'], a: 0, why: 'תרחיש 1: אף קוטב לא מגיע לחצי המישור הימני.' },
+    { q: 'ענף אחד נמצא כולו על הציר הממשי החיובי. מה נכון?', o: ['לא יציב לכל K', 'יציב עבור K גדול', 'יציב עבור K קטן', 'יציב רק ב-K קריטי'], a: 0, why: 'תרחיש 2: מספיק קוטב אחד מימין כדי שהמערכת לא תהיה יציבה.' },
+    { q: 'תרחיש 3 ותרחיש 4: מה ההבדל ביניהם?', o: ['ב-4 יש ענף נוסף שנשאר תמיד מימין', 'ב-4 אין חיתוך עם הציר המדומה', 'ב-3 המערכת יציבה לכל K', 'ב-4 המשוב חיובי'], a: 0, why: 'בשניהם יש חיתוך. בתרחיש 4 ענף אחר נשאר מימין, ולכן המערכת לא יציבה לכל K.' }],
+  traps: ['לחשוב שחיתוך עם הציר המדומה תמיד אומר שיש תחום יציב. בתרחיש 4 אין כזה.', 'לא לבדוק את <b>כיוון</b> החיתוך. מימין לשמאל: יציב עבור K > K<sub>c</sub>. משמאל לימין: יציב עבור K < K<sub>c</sub>.', 'לקחת את K = 0 או את K = ∞ כערך קריטי.'],
+  exam: 'שלב 8 בשרטוט. בסוף השיעור המרצה סימן מה ללמוד: Routh–Hurwitz ו-Root Locus.',
+};
+
+Lc.routh = {
+  simple: `<p>רוצים לדעת עבור אילו ערכי K כל הקטבים נמצאים משמאל, <b>בלי לפתור</b> את המשוואה האופיינית.</p>
+<p><b>מבחן Routh–Hurwitz</b> עושה את זה בטבלה: ממלאים אותה ממקדמי הפולינום, ומסתכלים רק על <b>העמודה הראשונה</b>. אם כל האיברים בה חיוביים, כל השורשים משמאל והמערכת יציבה.</p>
+<p class="ana">🚦 אנלוגיה: העמודה הראשונה היא שורה של רמזורים. כולם ירוקים (חיוביים)? עוברים. מספיק רמזור אדום אחד, והמערכת לא יציבה.</p>
+<p>כש-K מופיע במקדמים, כל רמזור נותן תנאי על K. החיתוך של כל התנאים הוא תחום היציבות. ה-K שמאפס שורה שלמה הוא <b>K<sub>c</sub></b>, ושם הענפים חוצים את הציר המדומה.</p>`,
+  sym: [['a<sub>3</sub> … a<sub>0</sub>', 'מקדמי המשוואה האופיינית K·N(s) + D(s) = 0, מהחזקה הגבוהה לנמוכה', '—'], ['B<sub>1</sub>', 'האיבר הראשון בשורת s¹ של הטבלה', '—'], ['C<sub>1</sub>', 'האיבר בשורת s⁰. בסדר 3 הוא שווה ל-a<sub>0</sub>', '—'],
+    ['K<sub>c</sub>', 'K קריטי: מאפס שורה שלמה בטבלה', '—'], ['ω<sub>c</sub>', 'תדר החיתוך עם הציר המדומה, s = ±jω<sub>c</sub>', 'rad/s']],
+  intro: 'הטבלה נותנת את תחום K ליציבות, את K קריטי, ודרך השורה שמעל שורת האפסים גם את נקודת החיתוך.',
+  body: `<p>למשוואה אופיינית מסדר 3:</p><p class="f">a<sub>3</sub>s³ + a<sub>2</sub>s² + a<sub>1</sub>s + a<sub>0</sub> = 0</p>
+<table class="t"><tr><th>s³</th><td>a<sub>3</sub></td><td>a<sub>1</sub></td></tr><tr><th>s²</th><td>a<sub>2</sub></td><td>a<sub>0</sub></td></tr><tr><th>s¹</th><td>B<sub>1</sub> = (a<sub>2</sub>a<sub>1</sub> − a<sub>3</sub>a<sub>0</sub>)/a<sub>2</sub></td><td>0</td></tr><tr><th>s⁰</th><td>C<sub>1</sub> = a<sub>0</sub></td><td></td></tr></table>
+<p><b>יציבות:</b> כל איברי העמודה הראשונה חיוביים. כל איבר נותן תנאי על K, ולוקחים את החיתוך של כולם.</p>
+<p><b>סינון:</b> התנאים מהטבלה מתעלמים מסוג המשוב. אם יצא למשל −8 < K < 20 ונתון משוב שלילי (0 < K < ∞), תחום היציבות הוא 0 < K < 20.</p>
+<p><b>מציאת ω<sub>c</sub> מהטבלה</b>, במקום להציב K<sub>c</sub> במשוואה האופיינית המלאה:</p>
+<ol><li>מציבים K<sub>c</sub> בשורות עד שמתקבלת שורת אפסים.</li><li>עולים לשורה שמעל שורת האפסים ובונים ממנה פולינום. משורת s²: a<sub>2</sub>s² + a<sub>0</sub> = 0.</li><li>מציבים K<sub>c</sub> ופותרים.</li><li>מקבלים את s הקריטי: s = ±jω<sub>c</sub>.</li><li>הפתרונות האלה הם בדיוק הענפים שחתכו את הציר המדומה.</li></ol>
+<p>למה לא להציב K<sub>c</sub> ישר במשוואה האופיינית? בעיה 1: הסדר של המשוואה. בעיה 2: לא כל הפתרונות שלה חותכים את הגבול.</p>`,
+  graph(box) {
+    const p = [0, -1, -2], B = [-4, 2, -3, 3], P = plot(box, { x: [B[0], B[1]], y: [B[2], B[3]], xl: 'σ', yl: 'jω', xt: [[-2, '−2'], [-1, '−1'], [0, '0']], yt: [[-1.41, '−1.41'], [0, '0'], [1.41, '1.41']] }), d = rlData(p, [], B, 60);
+    sliders(box, [{ k: 'K', label: 'K', min: 0, max: 12, step: 0.1, v: 2 }], v => {
+      P.clear(); drawSPlane(P, B); drawReal(P, d); drawBranch(P, d); drawPZ(P, p, []);
+      clPoles(p, [], v.K).forEach(q => { if (q[0] >= B[0] && Math.abs(q[1]) <= B[3]) P.dot(q[0], near0(q[1]), ''); });
+      const st = v.K === 0 ? 'K = 0: אלה קטבי החוג הפתוח' : v.K < 5.95 ? '<b>יציב</b>: כל העמודה חיובית, וכל הקטבים משמאל' : v.K < 6.05 ? '<b>על הגבול</b>: B<sub>1</sub> = 0. מהשורה שמעל: 3s² + 6 = 0 ⇒ s = ±j1.41' : '<b>לא יציב</b>: B<sub>1</sub> שלילי, ושני קטבים עברו לצד ימין';
+      return `L(s) = K/[s(s + 1)(s + 2)] ⇒ s³ + 3s² + 2s + K = 0<br>העמודה הראשונה: 1 , 3 , B<sub>1</sub> = (6 − K)/3 = <b>${fm(near0((6 - v.K) / 3))}</b> , K = ${v.K}<br>${st}`;
+    });
+  },
+  ex: { src: 'דוגמה: L(s) = K/[s(s + 1)(s + 2)]', inputs: { a: 1, b: 2 } },
+  quiz: [{ q: 'במבחן Routh–Hurwitz, על מה מסתכלים כדי לקבוע יציבות?', o: ['על הסימנים בעמודה הראשונה', 'על השורה האחרונה בלבד', 'על סכום כל האיברים', 'על העמודה האחרונה'], a: 0, why: 'כשכל איברי העמודה הראשונה חיוביים, כל השורשים נמצאים משמאל לציר המדומה.' },
+    { q: 'הטבלה נתנה −8 < K < 20, ונתון משוב שלילי. מה תחום היציבות?', o: ['0 < K < 20', '−8 < K < 20', '−8 < K < 0', 'K > 20'], a: 0, why: 'משוב שלילי הוא 0 < K < ∞. חותכים עם תנאי הטבלה ומסננים את ה-K הלא רלוונטי.' },
+    { q: 'שורת s¹ התאפסה עבור K קריטי. מאיזו שורה בונים את הפולינום שנותן את תדר החיתוך?', o: ['מהשורה שמעל, שורת s²', 'משורת s¹ עצמה', 'משורת s⁰', 'משורת s³'], a: 0, why: 'עולים שורה אחת מעל שורת האפסים. משורת s² מקבלים a<sub>2</sub>s² + a<sub>0</sub> = 0, והפתרון הוא s = ±jω<sub>c</sub>.' }],
+  traps: ['לעצור אחרי תנאי אחד. צריך את החיתוך של <b>כל</b> התנאים על K.', 'באי-שוויון ריבועי ב-K: לבדוק איזה צד של השורשים מקיים אותו, ואז לחתוך עם התחום הנתון.', 'לבנות את הפולינום משורת האפסים עצמה במקום מהשורה שמעליה.', 'לעגל את K<sub>c</sub> מוקדם מדי. המכנה K<sub>c</sub> − 4 = 0.3423 רגיש מאוד לעיגול.'],
+  exam: 'הכלי למציאת תחום K ליציבות ונקודת החיתוך. במועד א׳ קיץ תשפ"ה יצא K<sub>c</sub> = 4.34 ו-ω<sub>c</sub> = 3.56.',
+};
+
+Lc.rlExam = {
+  simple: `<p>זו שאלה 1 ממועד א׳ קיץ תשפ"ה, כפי שנפתרה בשיעור: P(s) = (s + 1)<sup>i</sup> / [s(s² − 4s + C)], עם i = 2 ו-C = 4, במשוב שלילי.</p>
+<p>המכנה מתפרק: s² − 4s + 4 = (s − 2)². כלומר יש <b>קוטב כפול בחצי המישור הימני</b>, ובהגבר קטן המערכת לא יציבה.</p>
+<p class="ana">🧲 האפס הכפול ב-s = −1 מושך את הענפים שמאלה. השאלה היא כמה הגבר צריך כדי שהמשיכה תעביר את הקטבים לצד היציב.</p>
+<p>עוברים על תשעת השלבים לפי הסדר, ומקבלים שהמערכת יציבה רק עבור <b>K > 4.34</b>. בשרטוט: האזור האדמדם הוא הצד הלא יציב.</p>`,
+  get pic() { return rlPic(exPlot, P => exDraw(P, { z: 1, real: 1, full: 1, fin: 1 })); },
+  sym: [['P(s)', 'התהליך הנתון. החוג הפתוח הוא L(s) = K·P(s)', '—'], ['n , m', 'מספר הקטבים (3) ומספר האפסים (2)', '—'], ['σ<sub>as</sub>', 'נקודת היציאה של האסימפטוטות', '—'], ['K<sub>c</sub>', 'K קריטי: הענפים בדיוק על הציר המדומה', '—'],
+    ['ω<sub>c</sub>', 'תדר החיתוך עם הציר המדומה', 'rad/s'], ['B<sub>1</sub>', 'האיבר הראשון בשורת s¹ של טבלת Routh', '—']],
+  intro: 'כל תשעת השלבים על שאלה אחת, בסדר שבו פתרו אותה בשיעור.',
+  body: `<ol><li><b>K = 0</b>: נקודות ההתחלה, קטבי החוג הפתוח.</li><li><b>K → ∞</b>: נקודות הסיום, האפסים, והשאר לאינסוף.</li><li><b>מספר הענפים</b>: max(n, m).</li><li><b>סימטריה</b> סביב הציר הממשי.</li><li><b>אסימפטוטות</b>: מספר, נקודת יציאה σ<sub>as</sub> וזוויות.</li><li><b>ענפים על הציר הממשי</b>: כלל האי-זוגי.</li><li><b>ענפים מקטבים מרוכבים</b>. בדרך כלל לא מבקשים לחשב, אבל יש עבודות שדורשות. ראו סעיף ב׳.</li><li><b>חיתוך עם הציר המדומה</b>: Routh–Hurwitz נותן K<sub>c</sub> ו-ω<sub>c</sub>.</li><li><b>נקודות פריצה וחדירה</b>: dK/ds = 0.</li></ol>
+<p class="f">K(s + 1)² + s(s − 2)² = 0 &nbsp;⇒&nbsp; s³ + (K − 4)s² + (4 + 2K)s + K = 0</p>
+<p class="f">B<sub>1</sub> = [(K − 4)(4 + 2K) − K] / (K − 4) > 0 &nbsp;⇒&nbsp; 2K² − 5K − 16 > 0 &nbsp;⇒&nbsp; K > 4.34</p>
+<p class="f">(K<sub>c</sub> − 4)s² + K<sub>c</sub> = 0 &nbsp;⇒&nbsp; s = ±j3.56</p>
+<h3>שלב 7 ושלב 9</h3>
+<p><b>יציאה מהקוטב הכפול:</b> שני ענפים יוצאים מ-s = 2, אבל על הציר הממשי שמשני צידיו אין ענף. לכן הם יוצאים מהציר, בזוויות ±90°.</p>
+<p><b>נקודת החדירה:</b> כותבים K = −D(s)/N(s) = −s(s − 2)²/(s + 1)² ופותרים dK/ds = 0.</p>
+<p class="f">(s + 1)(s − 2)(s² + 5s − 2) = 0</p>
+<p>s = −1 ו-s = 2 הם האפס והקוטב עצמם, ו-s = 0.37 נמצא בקטע שבו אין ענף. נשארת נקודת חדירה אחת: s = −5.37, עם K = 15.3.</p>`,
+  graph(box) {
+    const P = plot(box, exPlot);
+    sliders(box, [{ k: 'K', label: 'K', min: 0, max: 30, step: 0.1, v: 1 }], v => {
+      P.clear(); exDraw(P, { z: 1, real: 1, full: 1 });
+      const r = clPoles([0, 2, 2], [-1, -1], v.K), cx = r.find(q => q[1] > 1e-4), re = r.filter(q => Math.abs(q[1]) <= 1e-4).map(q => near0(q[0])).sort((a, b) => b - a);
+      r.forEach(q => { if (q[0] >= EXB[0]) P.dot(q[0], Math.abs(q[1]) <= 1e-4 ? 0 : q[1], ''); });
+      const st = v.K < EXK - 0.05 ? `<b>לא יציב</b>: ${v.K === 0 ? 'אלה קטבי החוג הפתוח, ושניים מהם ב-s = 2' : 'שני קטבים מימין לציר המדומה'}` : v.K < EXK + 0.05 ? '<b>על הגבול</b>: K קרוב ל-K<sub>c</sub> = 4.34, והזוג המרוכב קרוב לנקודות s = ±j3.56'
+        : v.K < 15.27 ? '<b>יציב</b>: כל הקטבים משמאל. הזוג המרוכב עדיין נותן תגובה מתנדנדת' : '<b>יציב</b>: אחרי נקודת החדירה (K = 15.3) כל הקטבים ממשיים';
+      return `K = ${v.K}: s = ${cx ? `${fm(near0(cx[0]))} ± j${fmt(cx[1])} , ` : ''}${re.map(fm).join(' , ')}<br>${st}${re.some(x => x < EXB[0]) ? '<br>קוטב אחד כבר יצא מהתמונה שמאלה, בדרך לאינסוף' : ''}`;
+    });
+  },
+  video: [
+    { t: 'שלב 1: כש-K = 0 מתחילים בקטבי החוג הפתוח. יש קוטב בראשית וקוטב כפול ב-s = 2, ולכן n = 3.', d: P => exDraw(P) },
+    { t: 'שלב 2: כש-K → ∞ שני ענפים מסתיימים באפס הכפול ב-s = −1, כי m = 2. הענף השלישי הולך לאינסוף.', d: P => exDraw(P, { z: 1 }) },
+    { t: 'שלבים 3–4: יש max(n, m) = 3 ענפים, והשרטוט חייב לצאת סימטרי סביב הציר הממשי.', d: P => exDraw(P, { z: 1 }) },
+    { t: 'שלב 5: אסימפטוטה אחת, כי n − m = 1. נקודת היציאה σ<sub>as</sub> = (4 − (−2))/1 = 6 והזווית 180°, כלומר הציר הממשי שמאלה.', d: P => exDraw(P, { z: 1, as: 1 }) },
+    { t: 'שלב 6: סופרים קטבים ואפסים מימין לכל קטע של הציר הממשי. 0 ו-2 זוגיים, אין ענף. 3 ו-5 אי-זוגיים, יש ענף.', d: P => exDraw(P, { z: 1, as: 1, real: 1, cnt: 1 }) },
+    { t: 'שלב 7: אין קטבים מרוכבים. שני הענפים שיוצאים מהקוטב הכפול לא יכולים להישאר על הציר, כי שם אין ענף. הם יוצאים בזוויות ±90°.', d: P => exDraw(P, { z: 1, real: 1, dep: 1 }) },
+    { t: 'שלב 8: לפי Routh–Hurwitz שורת s¹ מתאפסת ב-K<sub>c</sub> = 4.34, והפולינום מהשורה שמעל נותן s = ±j3.56. שם הענפים חוצים את הציר המדומה.', d: P => exDraw(P, { z: 1, real: 1, cross: 1 }) },
+    { t: 'שלב 9: התנאי dK/ds = 0 נותן נקודת חדירה ב-s = −5.37, עם K = 15.3. שם הזוג חוזר לציר הממשי. אחד פונה לאפס ב-s = −1 והשני לאינסוף.', d: P => exDraw(P, { z: 1, real: 1, full: 1 }) },
+    { t: 'התמונה המלאה: עד K = 4.34 שני קטבים נמצאים באזור האדמדם, והמערכת לא יציבה. עבור K > 4.34 כל הקטבים משמאל, והמערכת יציבה.', d: P => exDraw(P, { z: 1, real: 1, full: 1, fin: 1 }) },
+  ],
+  vplot: exPlot,
+  ex: { src: 'מועד א׳ קיץ תשפ"ה, שאלה 1 (i = 2, C = 4)', inputs: { z: 1, p: 2 } },
+  quiz: [{ q: 'למה המערכת לא יציבה עבור K קטן?', o: ['כי שני קטבים יוצאים מ-s = 2, בחצי המישור הימני', 'כי האפסים בחצי המישור השמאלי', 'כי יש קוטב בראשית', 'כי n גדול מ-m'], a: 0, why: 'ב-K = 0 הקטבים הם 0, 2, 2. הזוג שיוצא מ-s = 2 נשאר מימין עד K = 4.34.' },
+    { q: 'ב-K = 4.34, מה קורה לקטבים?', o: ['שני קטבים נמצאים על הציר המדומה: s = ±j3.56', 'כל הקטבים מתלכדים', 'הקטבים מגיעים לאפסים', 'הענפים נכנסים לציר הממשי'], a: 0, why: 'זה K קריטי: שורת s¹ בטבלת Routh מתאפסת, והפולינום מהשורה שמעל נותן s = ±j3.56.' },
+    { q: 'האי-שוויון 2K² − 5K − 16 > 0 מתקיים עבור K > 4.34 או K < −1.84. למה התנאי K > 4.34 הוא היחיד שנשאר?', o: ['כי נתון 0 < K < ∞, וגם נדרש K > 4', 'כי K חייב להיות מספר שלם', 'כי −1.84 הוא לא שורש של המשוואה', 'כי במשוב חיובי המערכת תמיד יציבה'], a: 0, why: 'חותכים את כל התנאים: K > 4, K > 0 והתחום הנתון. נשאר K > 4.34.' }],
+  traps: ['להעתיק את המכנה כ-s² − 4s − 4. רק עם +4 מקבלים (s − 2)², קוטב כפול ב-s = 2.', 'לכתוב את האיבר החופשי של המשוואה האופיינית כ-4 במקום K.', 'ω<sub>c</sub> = 3.56 ולא 3.65 כמו בסיכום: s² = −4.342/0.3423 = −12.68.', 'בטבלת Routh בעמוד 8 של הסיכום, המקדם של s³ כתוב −1. הנכון הוא 1.', 'לשכוח את התנאי K − 4 > 0 משורת s².'],
+  exam: 'מועד א׳ קיץ תשפ"ה, שאלה 1: "חשבו ושרטטו בצורה מלאה ומפורטת את ה-RL עבור החוג הסגור".',
+};
+
+Lc.rlBreak = {
+  simple: `<p>ענפים על הציר הממשי יכולים <b>לעזוב</b> את הציר ולהפוך לזוג מרוכב, ויכולים <b>להיכנס</b> אליו מהמישור.</p>
+<p><b>נקודת פריצה</b>: שני ענפים שנעים על הציר זה לקראת זה, למשל משני קטבים שכנים, נפגשים ומשם יוצאים מהציר, אחד למעלה ואחד למטה.</p>
+<p><b>נקודת חדירה</b>: זוג מרוכב חוזר לציר הממשי, ומשם שני הענפים ממשיכים על הציר לכיוונים מנוגדים, בדרך כלל לאפס ולאינסוף.</p>
+<p class="ana">🚗 אנלוגיה מהשיעור: שתי מכוניות בכביש צר נוסעות זו מול זו. בנקודת המפגש הן חייבות לפרוץ החוצה, אחת לכל צד.</p>
+<p>בשתי הנקודות K הוא <b>אקסטרמום</b> לאורך הציר: בפריצה מקסימום, ובחדירה מינימום. לכן מוצאים אותן מהתנאי dK/ds = 0.</p>`,
+  get pic() { return rlPic(bkPlot, P => bkDraw(P)); },
+  sym: [['פריצה', 'break-away: הענפים עוזבים את הציר הממשי. K מקסימלי מקומית', '—'], ['חדירה', 'break-in: הענפים נכנסים לציר הממשי. K מינימלי מקומית', '—'],
+    ['K(s)', 'K כפונקציה של s, מתוך K·N + D = 0: K = −D(s)/N(s)', '—'], ['D′ , N′', 'הנגזרות של המכנה ושל המונה', '—']],
+  intro: 'שלב 9 בשיעור: איפה ענפים עוזבים את הציר הממשי ואיפה הם נכנסים אליו.',
+  body: `<p class="f">K·N(s) + D(s) = 0 &nbsp;⇒&nbsp; K = −D(s)/N(s)</p>
+<p class="f">dK/ds = 0 &nbsp;⇔&nbsp; D′(s)·N(s) − D(s)·N′(s) = 0</p>
+<p>בסיכום כתוב K = D/N, בלי המינוס. לשורשים של dK/ds = 0 זה לא משנה. אפשר גם לגזור את L(s) ולהשוות לאפס, ומקבלים אותה משוואה.</p>
+<p><b>סינון הפתרונות.</b> פותרים את הפולינום, מסתכלים על השרטוט ושומרים רק פתרונות:</p>
+<ul><li>ממשיים. פתרון מרוכב נפסל.</li><li>שנמצאים על קטע שיש בו ענף (שלב 6).</li><li>שהם לא קוטב או אפס של החוג הפתוח. קטבים ואפסים כפולים יוצאים כפתרונות של המשוואה.</li></ul>
+<p>בדיקה מהירה: מציבים את הנקודה ב-K = −D/N. במשוב שלילי צריך לצאת K > 0, ובמשוב חיובי K < 0.</p>
+<table class="t"><tr><th>איפה</th><th>הסוג</th><th>K בנקודה</th></tr><tr><td>בין שני קטבים</td><td>פריצה</td><td>מקסימום</td></tr><tr><td>בין שני אפסים, או בין אפס לאינסוף</td><td>חדירה</td><td>מינימום</td></tr></table>
+<p><b>מה רואים בנקודות האלה.</b> נקודת מפגש של שני ענפים היא <b>שורש כפול</b>: עבור ה-K הזה לשני ענפים יש אותו פתרון. על הציר הממשי הקטבים ממשיים, והתגובה <b>בריסון יתר</b>. מחוץ לציר הקטבים מרוכבים, והתגובה <b>בתת-ריסון</b>.</p>
+<h3>בשאלת המבחן</h3>
+<p>סעיף א׳:</p><p class="f">(s + 1)(s − 2)(s² + 5s − 2) = 0</p>
+<p>s = −1 הוא האפס ו-s = 2 הוא הקוטב, ולכן נפסלים. s = 0.37 בקטע שאין בו ענף. נשאר s = −5.37: נקודת חדירה, עם K = 15.3.</p>
+<p>סעיף ב׳, במשוב חיובי:</p><p class="f">2s³ − s² − 8s + 8 = 0</p><p>הפתרון הממשי היחיד הוא s = −2.18, עם K = −39.7. שני האחרים מרוכבים.</p>`,
+  graph(box) {
+    const P = plot(box, bkPlot), Kf = x => -(x + 1) * (x + 3) / (x + 5);
+    sliders(box, [{ k: 'x', label: 'σ', min: -10.5, max: -1, step: 0.01, v: -2.5, f: fm }], v => {
+      P.clear(); bkDraw(P, v.x);
+      if (Math.abs(v.x + 5) < 1e-9) return 'σ = −5 הוא האפס עצמו. הזז מעט.';
+      const K = Kf(v.x), hint = K < 0 ? 'כאן K שלילי, כלומר אין ענף במשוב שלילי' : v.x > -3 ? `בין שני הקטבים K עולה מ-0, מגיע למקסימום ${fmt(Kf(-5 + sq(8)))} ב-σ = −2.17 ויורד חזרה ל-0. זו נקודת פריצה` : `משמאל לאפס K יורד מאינסוף, מגיע למינימום ${fmt(Kf(-5 - sq(8)))} ב-σ = −7.83 ועולה שוב. זו נקודת חדירה`;
+      return `L(s) = K(s + 5)/[(s + 1)(s + 3)] ⇒ K(σ) = −(σ + 1)(σ + 3)/(σ + 5)<br>σ = ${fm(v.x)}: K = <b>${fm(near0(K))}</b><br>${hint}`;
+    });
+  },
+  ex: { src: 'הדוגמה הכללית מהשיעור', inputs: { p: [-1, -3], z: [-5], i: 0 } },
+  quiz: [{ q: 'על קטע בין שני קטבים יש ענף. מה יש בנקודה שבה dK/ds = 0?', o: ['נקודת פריצה, ו-K מקסימלי שם', 'נקודת חדירה, ו-K מינימלי שם', 'סוף הענף', 'K = 0'], a: 0, why: 'שני הענפים יוצאים מהקטבים ונעים זה לקראת זה. K עולה מ-0 בשני הקצוות, ולכן באמצע יש מקסימום.' },
+    { q: 'מהמשוואה dK/ds = 0 יצא s = 2, וזה קוטב כפול של החוג הפתוח. מה עושים?', o: ['פוסלים אותו', 'זו נקודת פריצה', 'זו נקודת חדירה', 'מחשבים את K בו'], a: 0, why: 'קטבים ואפסים כפולים תמיד יוצאים כפתרונות של המשוואה, אבל הם לא נקודות פריצה או חדירה.' },
+    { q: 'במשוב שלילי מצאת נקודה, וההצבה נתנה K = −3. מה זה אומר?', o: ['הנקודה לא על ה-RL, ופוסלים אותה', 'זו נקודת פריצה', 'זו נקודת חדירה', 'בהכרח יש טעות בחישוב'], a: 0, why: 'K שלילי אומר שהנקודה שייכת ל-RL של משוב חיובי, לא לזה שמשרטטים.' }],
+  traps: ['לקחת את כל הפתרונות של dK/ds = 0. נשארים רק ממשיים, על קטע עם ענף, שאינם קוטב או אפס.', 'לבלבל בין הסוגים: פריצה היא מקסימום של K (בין קטבים), חדירה היא מינימום (בין אפסים).', 'לשכוח שבמשוב חיובי K בנקודה צריך לצאת שלילי.'],
+  exam: 'שלב 9 בשרטוט. בשאלת המבחן: s = −5.37 בסעיף א׳ ו-s = −2.18 בסעיף ב׳.',
+};
+
+Lc.rlExamB = {
+  simple: `<p>סעיף ב׳ של אותה שאלה: C = 8 ו-i = 1, כלומר L(s) = K(s + 1)/[s(s² − 4s + 8)], והפעם <b>משוב חיובי</b>, −∞ < K < 0.</p>
+<p>יש שני הבדלים מסעיף א׳. הקטבים 2 ± j2 <b>מרוכבים</b>, ולכן צריך את שלב 7, זווית היציאה. והמשוב חיובי, ולכן שלושה כללים מתהפכים: הציר הממשי, זוויות האסימפטוטות וזווית היציאה.</p>
+<p class="ana">🪞 אנלוגיה: משוב חיובי הוא תמונת ראי של הכללים. אותם שלבים בדיוק, אבל בכל כלל שתלוי בזוגיות או בזווית, התשובה מתהפכת.</p>
+<p>התוצאה: המערכת <b>לא יציבה לכל K</b>. הענף שיוצא מהראשית בורח ימינה לאינסוף.</p>`,
+  get pic() { return rlPic(ebPlot, P => exBDraw(P, { z: 1, real: 1, full: 1, fin: 1 })); },
+  sym: [['−∞ < K < 0', 'משוב חיובי', '—'], ['C , i', 'הפרמטרים של הסעיף: C = 8, i = 1', '—'], ['θ<sub>dep</sub>', 'זווית היציאה מקוטב מרוכב', '°'],
+    ['θ<sub>z</sub> , θ<sub>p</sub>', 'הזוויות מכל אפס ומכל קוטב אחר אל הקוטב שבודקים, מהכיוון החיובי של הציר הממשי', '°'], ['σ<sub>as</sub>', 'נקודת היציאה של האסימפטוטות', '—']],
+  intro: 'אותם תשעה שלבים, הפעם עם משוב חיובי וזוג קטבים מרוכבים.',
+  body: `<table class="t"><tr><th>כלל</th><th>משוב שלילי (K > 0)</th><th>משוב חיובי (K < 0)</th></tr>
+<tr><td>ענף על הציר הממשי</td><td>מספר אי-זוגי מימין</td><td>מספר זוגי מימין</td></tr>
+<tr><td>זוויות האסימפטוטות</td><td>(2i + 1)·180°/(n − m)</td><td>2i·180°/(n − m)</td></tr>
+<tr><td>זווית יציאה מקוטב מרוכב</td><td>Σθ<sub>z</sub> − Σθ<sub>p</sub> = 180°</td><td>Σθ<sub>z</sub> − Σθ<sub>p</sub> = 0°</td></tr></table>
+<p>σ<sub>as</sub>, טבלת Routh והתנאי dK/ds = 0 נשארים אותו דבר.</p>
+<p class="f">σ<sub>as</sub> = (0 + 2 + 2 − (−1))/2 = 2.5 &nbsp;·&nbsp; θ = 0°, 180°</p>
+<p class="f">θ<sub>dep</sub> = 33.69° − 45° − 90° = −101.31°</p>
+<p class="f">s³ − 4s² + (8 + K)s + K = 0</p>
+<p>בשורת s² של טבלת Routh האיבר הראשון הוא −4, שלילי לכל K. לכן תמיד יש שינוי סימן, והמערכת לא יציבה לכל K.</p>
+<p class="f">2s³ − s² − 8s + 8 = 0 &nbsp;⇒&nbsp; s = −2.18 (K = −39.7)</p>
+<h3>השלמה: זה תרחיש 4</h3>
+<p>B<sub>1</sub> = (32 + 5K)/4 מתאפס ב-K = −6.4. שם הזוג המרוכב חוצה את הציר המדומה, בנקודות s = ±j1.26. בתחום −6.4 < K < 0 יש 3 קטבים מימין, ומתחתיו קוטב אחד: זה שיוצא מהראשית ונשאר על הציר הממשי החיובי. יש חיתוך, אבל אין תחום יציב.</p>`,
+  graph(box) {
+    const P = plot(box, ebPlot);
+    sliders(box, [{ k: 'K', label: 'K', min: -60, max: 0, step: 0.1, v: -3, f: fm }], v => {
+      P.clear(); exBDraw(P, { z: 1, real: 1, full: 1 });
+      const r = clPoles([0, [2, 2]], [-1], v.K), cx = r.find(q => q[1] > 1e-4), re = r.filter(q => Math.abs(q[1]) <= 1e-4).map(q => near0(q[0])).sort((a, b) => b - a), un = r.filter(q => q[0] > 1e-6).length;
+      r.forEach(q => { if (q[0] >= EBB[0] && q[0] <= EBB[1]) P.dot(q[0], Math.abs(q[1]) <= 1e-4 ? 0 : q[1], ''); });
+      const st = v.K === 0 ? 'אלה קטבי החוג הפתוח, ושניים מהם מימין' : Math.abs(v.K + 6.4) < 0.05 ? 'הזוג המרוכב בדיוק על הציר המדומה, והקוטב הממשי מימין' : `${un === 1 ? 'קוטב אחד' : un + ' קטבים'} מימין לציר המדומה`;
+      return `K = ${fm(v.K)}: s = ${cx ? `${fm(near0(cx[0]))} ± j${fmt(cx[1])} , ` : ''}${re.map(fm).join(' , ')}<br><b>לא יציב</b>: ${st}${re.some(x => x > EBB[1]) ? '<br>הקוטב שיוצא מהראשית כבר יצא מהתמונה ימינה, בדרך לאינסוף' : ''}`;
+    });
+  },
+  video: [
+    { t: 'שלב 1: כש-K = 0 מתחילים בקטבים: s = 0 וזוג מרוכב 2 ± j2 בחצי המישור הימני. n = 3.', d: P => exBDraw(P) },
+    { t: 'שלב 2: ענף אחד מסתיים באפס ב-s = −1, כי m = 1. שני ענפים הולכים לאינסוף.', d: P => exBDraw(P, { z: 1 }) },
+    { t: 'שלב 5: שתי אסימפטוטות יוצאות מ-σ<sub>as</sub> = 2.5. במשוב חיובי הזוויות הן 0° ו-180°.', d: P => exBDraw(P, { z: 1, as: 1 }) },
+    { t: 'שלב 6: במשוב חיובי יש ענף כשהמספר מימין זוגי. 0 ו-2 זוגיים, יש ענף. 1 אי-זוגי, אין ענף.', d: P => exBDraw(P, { z: 1, as: 1, real: 1, cnt: 1 }) },
+    { t: 'שלב 7: זווית היציאה מהקוטב העליון: 33.7° − 45° − 90° = −101.3°. מהקוטב התחתון: +101.3°.', d: P => exBDraw(P, { z: 1, real: 1, dep: 1 }) },
+    { t: 'שלב 8: בשורת s² יש −4 לכל K, ולכן המערכת לא יציבה לכל K. השלמה: הזוג חוצה את הציר המדומה בנקודות s = ±j1.26, כש-K = −6.4.', d: P => exBDraw(P, { z: 1, real: 1, cross: 1 }) },
+    { t: 'שלב 9: התנאי dK/ds = 0 נותן נקודת חדירה ב-s = −2.18, עם K = −39.7. משם ענף אחד הולך לאפס והשני לאינסוף.', d: P => exBDraw(P, { z: 1, real: 1, full: 1 }) },
+    { t: 'התמונה המלאה: הענף מהראשית נשאר תמיד מימין, ולכן המערכת לא יציבה לכל K. יש חיתוך בלי תחום יציב: זה תרחיש 4.', d: P => exBDraw(P, { z: 1, real: 1, full: 1, fin: 1 }) },
+  ],
+  vplot: ebPlot,
+  ex: { src: 'מועד א׳ קיץ תשפ"ה, שאלה 1 סעיף ב׳ (i = 1, C = 8)', inputs: { c: 8 } },
+  quiz: [{ q: 'במשוב חיובי n − m = 2. מהן זוויות האסימפטוטות?', o: ['0° ו-180°', '90° ו-270°', '60° ו-300°', '45° ו-135°'], a: 0, why: 'במשוב חיובי θ<sub>i</sub> = 2i·180°/(n − m). עם i = 0, 1 מקבלים 0° ו-180°.' },
+    { q: 'למה המערכת לא יציבה לכל K < 0?', o: ['בשורת s² יש −4 לכל K, ולכן תמיד יש שינוי סימן', 'כי K שלילי', 'כי יש קטבים מרוכבים', 'כי n − m = 2'], a: 0, why: 'בעמודה הראשונה יש 1 ואחריו −4, בלי קשר ל-K. בשרטוט רואים את זה בענף שיוצא מהראשית ונשאר על הציר הממשי החיובי.' },
+    { q: 'כמה תורמים הקטבים 2 + j2 ו-2 − j2 ל-Σp בחישוב σ<sub>as</sub>?', o: ['4', '2', '0', '4 + j4'], a: 0, why: 'מחברים את שני הקטבים, והחלקים המדומים מתבטלים: 2 + 2 = 4.' }],
+  traps: ['להשתמש בכללים של משוב שלילי. במשוב חיובי: ענף כשהמספר זוגי, θ<sub>i</sub> = 2i·180°/(n − m), ובזווית היציאה הסכום הוא 0°.', 'לספור קטבים מרוכבים בכלל הזוגיות על הציר הממשי. הם באים בזוג ולא משנים את הזוגיות.', 'זווית היציאה: בסיכום יצא −102°. החישוב המדויק: 33.69° − 45° − 90° = −101.31°.', 'לעצור ב"לא יציבה לכל K" בלי לשרטט. השאלה מבקשת שרטוט מלא, כולל החיתוך עם הציר המדומה ונקודת החדירה.'],
+  exam: 'מועד א׳ קיץ תשפ"ה, שאלה 1 סעיף ב׳ (C = 8, i = 1, −∞ < K < 0).',
+};
 
 const SB_URL = 'https://enhqzgjqqyubgfysnjib.supabase.co';
 const SB_KEY = 'sb_publishable_w3aqbIxj_ECmMOUhANPebw_thGqD9o1';

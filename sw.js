@@ -1,6 +1,6 @@
 // מעבדת מבחנים — service worker: התקנה לטלפון ועבודה בלי אינטרנט (ברכבת).
 // הדף: הרשת קודמת, ובלי רשת — מהמטמון. ספריית Supabase מה-CDN: מהמטמון (גרסה קבועה). קריאות ל-Supabase עצמו לא עוברות כאן.
-const CACHE = "study-1.6.0";
+const CACHE = "study-1.7.0";
 const LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).then(() => c.add(LIB).catch(() => { }))).then(() => self.skipWaiting())); });
