@@ -7,7 +7,7 @@
 <title>מעבדת מבחנים</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 :root { --bg:#14161f; --card:#1d2030; --line:#2c3046; --tx:#e8e9f0; --mut:#9a9db3; --acc:#f2b84b; --ok:#4fc38a; --bad:#ef6b6b; }
 * { box-sizing:border-box; }
@@ -3103,6 +3103,7 @@ const BUCKET = 'study-files', FCACHE = 'study-files-v1';
 const b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const unb64 = k => { try { const s = atob(k.replace(/-/g, '+').replace(/_/g, '/')); return new TextDecoder().decode(Uint8Array.from(s, c => c.charCodeAt(0))); } catch { return k; } };
 const keyOf = name => { const m = name.match(/\.([A-Za-z0-9]{1,5})$/); return b64(name.replace(/\.[A-Za-z0-9]{1,5}$/, '')) + (m ? '.' + m[1].toLowerCase() : ''); };
+const escHTML = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nameOf = key => { const m = key.match(/\.([a-z0-9]{1,5})$/); return unb64(key.replace(/\.[a-z0-9]{1,5}$/, '')) + (m ? '.' + m[1] : ''); };
 const idxKey = id => `study_files_${user.id}_${id}`;
 async function cachedFile(path) { try { const c = await caches.open(FCACHE); return await c.match('/files/' + path); } catch { return null; } }
@@ -3113,7 +3114,7 @@ async function materialsView(id, msg = '') {
   try { const { data, error } = await sb.storage.from(BUCKET).list(dir, { limit: 200, sortBy: { column: 'name', order: 'asc' } }); if (error) throw error;
     files = data.filter(f => f.id).map(f => f.name); localStorage.setItem(idxKey(id), JSON.stringify(files)); }
   catch { try { files = JSON.parse(localStorage.getItem(idxKey(id))) || []; } catch { files = []; } msg ||= 'אין חיבור – מוצגים הקבצים שנשמרו בטלפון.'; }
-  const rows = await Promise.all(files.map(async k => `<div class="file"><button class="ghost fopen" data-k="${k}"><span>${/\.pdf$/.test(k) ? '📄' : '🖼'}</span><b>${nameOf(k)}</b>${await cachedFile(dir + '/' + k) ? '<em>✓ שמור בטלפון</em>' : ''}</button><button class="ghost fdel" data-k="${k}" aria-label="מחיקה">🗑</button></div>`));
+  const rows = await Promise.all(files.map(async k => `<div class="file"><button class="ghost fopen" data-k="${escHTML(k)}"><span>${/\.pdf$/.test(k) ? '📄' : '🖼'}</span><b>${escHTML(nameOf(k))}</b>${await cachedFile(dir + '/' + k) ? '<em>✓ שמור בטלפון</em>' : ''}</button><button class="ghost fdel" data-k="${escHTML(k)}" aria-label="מחיקה">🗑</button></div>`));
   app().innerHTML = `<header><button class="ghost" id="back">→</button><h1>📚 חומרים – ${COURSES[id].name}</h1></header>
     <div class="card"><p class="hint">מבחנים, פתרונות וסיכומים – פרטיים לחשבון שלך. קובץ שנפתח פעם אחת זמין גם בלי אינטרנט.</p>
     <label class="primary upl">⬆ העלאת קבצים (אפשר לבחור כמה)<input type="file" id="up" accept="application/pdf,image/*" multiple hidden></label>
